@@ -51,17 +51,9 @@ export function initials(name) {
     .toUpperCase();
 }
 
-// formatNumber(12400) -> '12.4k'
+// formatNumber(1320) -> '1,320'
 export function formatNumber(n) {
-  if (n == null || Number.isNaN(Number(n))) return '0';
   const num = Number(n);
-  if (Math.abs(num) >= 1000000) {
-    const v = (num / 1000000).toFixed(1);
-    return `${v.endsWith('.0') ? v.slice(0, -2) : v}m`;
-  }
-  if (Math.abs(num) >= 1000) {
-    const v = (num / 1000).toFixed(1);
-    return `${v.endsWith('.0') ? v.slice(0, -2) : v}k`;
-  }
-  return String(Math.round(num));
+  if (n == null || Number.isNaN(num)) return '0';
+  return num.toLocaleString('en-US');
 }

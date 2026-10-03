@@ -49,12 +49,6 @@
   font-size: 0.92rem;
 }
 
-.footer-demo-note {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
 .footer-col-heading {
   margin: 0 0 14px;
   font-size: 0.78rem;
@@ -90,14 +84,6 @@
   padding: 20px 0;
   border-top: 1px solid var(--border-soft);
   font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.footer-demo-flag {
-  font-size: 0.72rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.2rem 0.65rem;
   color: var(--muted);
 }
 

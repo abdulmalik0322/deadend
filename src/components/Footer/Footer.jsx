@@ -52,9 +52,6 @@ export default function Footer() {
               <span className="footer-logo-word">DEADEND</span>
             </Link>
             <p className="footer-tagline">Before You Decide, See What Happened.</p>
-            <p className="footer-demo-note">
-              Demo build — content shown is fictional sample data.
-            </p>
           </div>
           {COLS.map((col) => (
             <nav key={col.heading} className="footer-col" aria-label={col.heading}>
@@ -71,7 +68,6 @@ export default function Footer() {
         </div>
         <div className="footer-bottom">
           <span>© 2026 DEADEND</span>
-          <span className="footer-demo-flag">Demo dataset</span>
           <a
             href="https://github.com/abdulmalik0322/deadend"
             target="_blank"

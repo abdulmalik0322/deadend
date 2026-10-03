@@ -8,6 +8,7 @@ import SimilarityCard from '../../components/SimilarityCard/SimilarityCard.jsx';
 import { SkeletonCard, SkeletonText } from '../../components/Skeleton/Skeleton.jsx';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import { useReveal, useCountUp } from '../../hooks/useReveal.js';
+import { computePatterns } from '../../utils/patterns.js';
 import './Home.css';
 
 /* ------------------------------------------------------------------ */
@@ -156,6 +157,7 @@ export default function Home() {
   const [stats, setStats] = useState(null);
   const [featured, setFeatured] = useState(null);
   const [similar, setSimilar] = useState(null);
+  const [patterns, setPatterns] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,6 +168,10 @@ export default function Home() {
     api.findSimilar({ goal: 'Start freelancing', country: 'Pakistan', experienceLevel: 'Beginner', budget: 'Under $500', skills: 'web development' })
       .then((r) => { if (!cancelled) setSimilar((r.results || []).slice(0, 3)); })
       .catch(() => { if (!cancelled) setSimilar([]); });
+    // Patterns are computed from the actual dataset — no invented totals.
+    api.listExperiences({ page: 1, perPage: 100, sort: 'relevance' })
+      .then((r) => { if (!cancelled) setPatterns(computePatterns(r.items || [])); })
+      .catch(() => { if (!cancelled) setPatterns(null); });
     return () => { cancelled = true; };
   }, []);
 
@@ -227,7 +233,7 @@ export default function Home() {
             <SkeletonText lines={1} />
           )}
         </div>
-        <p className="stats-note">Live counts from the current demo dataset.</p>
+        <p className="stats-note">Counts update as the community grows.</p>
       </RevealSection>
 
       {/* (3) HOW IT WORKS */}
@@ -300,7 +306,7 @@ export default function Home() {
           sub="Log what you are weighing, what you chose, and why — then track the outcome."
         />
         <div className="preview-panel">
-          <span className="preview-tag">Preview</span>
+          <span className="preview-tag">Example</span>
           <div className="decision-mock">
             <div className="decision-mock__head">
               <div>
@@ -333,7 +339,7 @@ export default function Home() {
           sub="No highlight reels. Just where they began and where they ended up."
         />
         <div className="preview-panel">
-          <span className="preview-tag">Sample illustration</span>
+          <span className="preview-tag">Example</span>
           <div className="before-after">
             <div className="before-after__col before-after__col--before">
               <p className="before-after__label">Before</p>
@@ -393,26 +399,22 @@ export default function Home() {
       <RevealSection>
         <SectionHead
           eyebrow="AI ANALYSIS"
-          title="Patterns across thousands of stories"
+          title={patterns ? `Patterns in ${patterns.total} documented experiences` : 'Patterns in documented experiences'}
           sub="Summaries generated from submitted experiences — transparent about what they are and what they are not."
         />
         <div className="preview-panel">
-          <span className="preview-tag">Sample pattern</span>
-          <div className="pattern-card">
-            <span className="pattern-card__icon">
-              <Icon name="sparkles" size={20} />
-            </span>
-            <p className="pattern-card__text">
-              Freelancers who validated demand with 2+ paying clients before quitting
-              stayed in the game 2.3x longer than those who quit first.
-            </p>
-            <p className="pattern-card__meta">Detected across 214 freelancing experiences</p>
-          </div>
-          <p className="responsible-note">
-            <Icon name="info" size={14} />
-            AI summaries describe patterns in submitted experiences. They are not predictions
-            or advice — verify independently before deciding.
-          </p>
+          <span className="preview-tag">Example insights · computed from the dataset</span>
+          {(patterns?.cards || []).map((card, i) => (
+            <div className="pattern-card" key={i}>
+              <span className="pattern-card__icon">
+                <Icon name="sparkles" size={20} />
+              </span>
+              <p className="pattern-card__text">{card.title}</p>
+              <p className="pattern-card__meta">
+                {card.text} {card.meta}
+              </p>
+            </div>
+          ))}
         </div>
         <div className="center">
           <Link className="btn btn-ghost" to="/analysis">

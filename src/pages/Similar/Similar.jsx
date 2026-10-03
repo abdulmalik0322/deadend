@@ -239,6 +239,10 @@ export default function Similar() {
                 />
               ))}
             </div>
+            <p className="similar-footnote">
+              Scores reflect how closely two situations match — not a prediction
+              of your outcome.
+            </p>
           </>
         )}
       </section>
@@ -264,14 +268,6 @@ export default function Similar() {
           These are relevance weights used to rank similar situations — not confidence scores.
         </p>
       </section>
-
-      <aside className="disclaimer" role="note">
-        <Icon name="shield" />
-        <p>
-          <strong>Platform-generated relevance score</strong> — it reflects similarity
-          of situations, not a prediction of your outcome.
-        </p>
-      </aside>
     </div>
   );
 }

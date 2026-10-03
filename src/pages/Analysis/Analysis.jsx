@@ -449,13 +449,10 @@ export default function Analysis() {
                   </section>
                 )}
 
-                <aside className="disclaimer" role="note">
-                  <Icon name="info" />
-                  <p>
-                    This analysis is informational and based on available platform data.
-                    It does not predict outcomes.
-                  </p>
-                </aside>
+                <p className="analysis-note">
+                  This analysis is informational, drawn from platform data — it does
+                  not predict outcomes.
+                </p>
               </article>
             )}
           </div>

@@ -17,7 +17,7 @@
 }
 
 .home-section {
-  padding: 88px 24px;
+  padding: 96px 24px;
 }
 
 .home-wrap {
@@ -232,7 +232,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -278,7 +278,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   position: relative;
 }
@@ -332,7 +332,7 @@
 /* ============ (4) Features ============ */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -381,11 +381,11 @@
 }
 
 .cards-grid--4 {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .cards-grid--3 {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* ============ Previews ============ */
@@ -585,26 +585,6 @@
   color: var(--muted);
 }
 
-.responsible-note {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--muted);
-  background: rgba(251, 191, 36, 0.06);
-  border: 1px solid rgba(251, 191, 36, 0.25);
-  border-radius: 10px;
-  padding: 14px 16px;
-}
-
-.responsible-note svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--warning);
-}
-
 /* ============ (10) The loop ============ */
 .loop {
   display: flex;
@@ -694,7 +674,7 @@
 /* ============ (12) Trust ============ */
 .trust-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -798,6 +778,15 @@
 @media (max-width: 760px) {
   .home-section {
     padding: 64px 18px;
+  }
+
+  /* Mobile: single, subtler network layer — keeps the hero clean and cheap */
+  .hero-net--b {
+    display: none;
+  }
+
+  .hero-net {
+    opacity: 0.4;
   }
 
   .hero {

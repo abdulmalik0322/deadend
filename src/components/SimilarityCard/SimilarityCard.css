@@ -6,6 +6,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
+  box-sizing: border-box;
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
@@ -154,14 +156,4 @@
 
 .sim-card__link:hover {
   text-decoration: underline;
-}
-
-.sim-card__disclaimer {
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 0.76rem;
-  line-height: 1.55;
-  color: var(--muted);
-  font-style: italic;
 }

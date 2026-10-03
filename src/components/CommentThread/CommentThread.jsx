@@ -7,7 +7,7 @@ import { useToast } from '../../components/Toast/Toast.jsx';
 import Modal from '../../components/Modal/Modal.jsx';
 import Avatar from '../../components/Avatar/Avatar.jsx';
 import EmptyState from '../../components/EmptyState/EmptyState.jsx';
-import { timeAgo } from '../../utils/format.js';
+import { formatNumber, timeAgo } from '../../utils/format.js';
 import './CommentThread.css';
 
 const REPORT_REASONS = [
@@ -160,7 +160,7 @@ export default function CommentThread({ experienceId }) {
             aria-label={liked.has(c.id) ? 'Unlike this comment' : 'Like this comment'}
           >
             <Icon name="heart" />
-            <span>{likeCount(c)}</span>
+            <span>{formatNumber(likeCount(c))}</span>
           </button>
           {user && !isReply && (
             <button

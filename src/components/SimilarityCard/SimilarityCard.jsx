@@ -77,10 +77,6 @@ export default function SimilarityCard({ experience, score, factors = [] }) {
           View experience <Icon name="arrowRight" size={14} />
         </Link>
       </div>
-
-      <p className="sim-card__disclaimer">
-        Platform-generated relevance score — similarity of situations, not a prediction.
-      </p>
     </article>
   );
 }

@@ -12,6 +12,7 @@ import {
   folders as seedFolders,
 } from '../../data/seed.js';
 import { scoreSimilarity } from '../../utils/similarity.js';
+import { themeCounts, WORKED_THEMES } from '../../utils/patterns.js';
 
 const STORE_KEY = 'deadend_v1';
 
@@ -235,38 +236,175 @@ export async function searchExperiences(query, { limit = 6 } = {}) {
   return items;
 }
 
+// ---------------------------------------------------------------------------
+// Listing filters
+// ---------------------------------------------------------------------------
+// UI "no filter" sentinels: FilterPanel.EMPTY_FILTERS uses '' for text fields
+// and 'Any' for the budget/level/time selects. Treat all of these (plus
+// null/undefined) as "no filter" so the default view returns everything.
+function isNoFilter(value) {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'string') {
+    const t = value.trim();
+    return t === '' || t === 'Any';
+  }
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+}
+
+function normText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+// Outcome taxonomy used by the data: successful | partially_successful |
+// unsuccessful | abandoned. The filter panel's checkbox labels use looser
+// words; map them here so both vocabularies filter correctly.
+const OUTCOME_ALIASES = {
+  successful: 'successful',
+  partially_successful: 'partially_successful',
+  partial: 'partially_successful',
+  mixed: 'partially_successful',
+  unsuccessful: 'unsuccessful',
+  failed: 'unsuccessful',
+  abandoned: 'abandoned',
+};
+
+function normalizeOutcomes(filters) {
+  const raw = [];
+  if (filters.outcome) raw.push(filters.outcome);
+  if (Array.isArray(filters.outcomes)) raw.push(...filters.outcomes);
+  return raw.map((o) => OUTCOME_ALIASES[normText(o)]).filter(Boolean);
+}
+
+// Budget: both the seed startingPoint.budget values ('Under $500',
+// '$500–$2,000', 'Over $2,000') and the filter options ('Under $500',
+// '$500–$2k', '$2k–$10k', '$10k+') are normalized to [min, max] ranges; a
+// record matches when the ranges overlap.
+function budgetRange(label) {
+  const t = normText(label).replace(/,/g, '');
+  if (!t) return null;
+  const nums = (t.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  if (t.includes('under') && nums.length) return [0, nums[0]];
+  if (t.includes('over') && nums.length) return [nums[0], Infinity];
+  if (t.endsWith('+') || t.includes('10k+')) return [10000, Infinity];
+  if (nums.length >= 2) {
+    const parts = t.split(/[^0-9.k]+/).filter(Boolean);
+    const scale = (n, s) => (s.includes('k') ? n * 1000 : n);
+    return [scale(nums[0], parts[0] || ''), scale(nums[1], parts[1] || '')];
+  }
+  if (nums.length === 1) return [0, nums[0]];
+  return null;
+}
+
+function rangesOverlap(a, b) {
+  // Strict on shared boundaries: a [0,500] budget does not fall in the
+  // "$500–$2k" bracket just because they touch at 500.
+  return a[0] < b[1] && b[0] < a[1];
+}
+
+// Time available: the seed stores e.g. '15 hrs/week'; the filter offers
+// ranges ('Under 5 hrs/week', '5–15 hrs/week', '15–30 hrs/week', '30+ hrs/week').
+function matchesTimeAvailable(recordValue, filterValue) {
+  const t = normText(filterValue);
+  const m = String(recordValue || '').match(/(\d+(?:\.\d+)?)/);
+  const hrs = m ? Number(m[1]) : NaN;
+  if (Number.isNaN(hrs)) return false;
+  if (t.includes('under 5')) return hrs < 5;
+  if (t.includes('30+') || t.includes('30 +')) return hrs > 30;
+  if (t.includes('15') && t.includes('30')) return hrs > 15 && hrs <= 30;
+  if (t.includes('5') && t.includes('15')) return hrs >= 5 && hrs <= 15;
+  return normText(recordValue) === t;
+}
+
+// The filter panel sends skills/tags as comma-separated strings; other
+// callers may send arrays. Normalize to a lowercase token list either way.
+function toList(value) {
+  if (Array.isArray(value)) return value.map((v) => normText(v)).filter(Boolean);
+  return String(value || '')
+    .split(/[,;]/)
+    .map((v) => normText(v))
+    .filter(Boolean);
+}
+
+function withAuthorAndStats(store, exp) {
+  return {
+    ...withEffectiveStats(store, exp),
+    author: authorOf(store, exp.authorId, exp.privacy),
+  };
+}
+
 const SORT_FNS = {
-  relevant: (a, b) => (b.stats?.views || 0) - (a.stats?.views || 0),
+  relevance: (a, b) => (b.stats?.views || 0) - (a.stats?.views || 0),
+  relevant: (a, b) => (b.stats?.views || 0) - (a.stats?.views || 0), // backward-compat alias
   recent: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   discussed: (a, b) => (b.stats?.comments || 0) - (a.stats?.comments || 0),
   saved: (a, b) => (b.stats?.saves || 0) - (a.stats?.saves || 0),
 };
 
-export async function listExperiences({ filters = {}, sort = 'relevant', page = 1, perPage = 9 } = {}) {
+export async function listExperiences({ filters = {}, sort = 'relevance', page = 1, perPage = 9 } = {}) {
   await latency();
   const store = loadStore();
   const user = sessionUser(store);
   let items = visibleExperiences(store, user);
 
-  if (filters.category) items = items.filter((e) => e.category === filters.category);
-  if (filters.country) items = items.filter((e) => e.country === filters.country);
-  if (filters.outcome) items = items.filter((e) => e.outcome === filters.outcome);
-  if (filters.budget)
+  if (!isNoFilter(filters.category)) {
+    const want = normText(filters.category);
+    items = items.filter((e) => normText(e.category) === want);
+  }
+  if (!isNoFilter(filters.country)) {
+    const want = normText(filters.country);
+    items = items.filter((e) => normText(e.country).includes(want));
+  }
+  const wantOutcomes = normalizeOutcomes(filters);
+  if (wantOutcomes.length) {
+    items = items.filter((e) => wantOutcomes.includes(e.outcome));
+  }
+  if (!isNoFilter(filters.goal)) {
+    const want = normText(filters.goal);
+    items = items.filter((e) => normText(e.goal).includes(want));
+  }
+  if (!isNoFilter(filters.budget)) {
+    const want = budgetRange(filters.budget);
+    items = items.filter((e) => {
+      if (!want) return true;
+      const have = budgetRange(e.startingPoint?.budget);
+      return have ? rangesOverlap(have, want) : false;
+    });
+  }
+  if (!isNoFilter(filters.experienceLevel)) {
+    const want = normText(filters.experienceLevel);
+    items = items.filter((e) => normText(e.startingPoint?.experienceLevel) === want);
+  }
+  if (!isNoFilter(filters.timeAvailable)) {
     items = items.filter((e) =>
-      String(e.startingPoint?.budget || '').toLowerCase().includes(String(filters.budget).toLowerCase())
+      matchesTimeAvailable(e.startingPoint?.timeAvailable, filters.timeAvailable)
     );
-  if (filters.experienceLevel)
-    items = items.filter((e) => e.startingPoint?.experienceLevel === filters.experienceLevel);
-  if (filters.timeAvailable)
-    items = items.filter((e) => e.startingPoint?.timeAvailable === filters.timeAvailable);
-  if (filters.skills && filters.skills.length)
+  }
+  const wantSkills = toList(filters.skills);
+  if (wantSkills.length) {
     items = items.filter((e) =>
-      (e.startingPoint?.skills || []).some((s) => filters.skills.includes(s))
+      (e.startingPoint?.skills || []).some((s) =>
+        wantSkills.some((w) => normText(s).includes(w))
+      )
     );
-  if (filters.tags && filters.tags.length)
-    items = items.filter((e) => (e.tags || []).some((t) => filters.tags.includes(t)));
-  if (filters.q) {
-    const q = String(filters.q).trim().toLowerCase();
+  }
+  const wantTags = toList(filters.tags);
+  if (wantTags.length) {
+    items = items.filter((e) => (e.tags || []).some((t) => wantTags.includes(normText(t))));
+  }
+  if (!isNoFilter(filters.authorUsername)) {
+    const want = normText(filters.authorUsername);
+    const ids = new Set(
+      allUsers(store)
+        .filter((u) => normText(u.username) === want)
+        .map((u) => u.id)
+    );
+    items = items.filter((e) => ids.has(e.authorId));
+  }
+  if (!isNoFilter(filters.q)) {
+    const q = normText(filters.q);
     items = items.filter((e) =>
       [e.title, e.description, e.goal, e.categoryLabel, ...(e.tags || [])]
         .join(' ')
@@ -275,7 +413,8 @@ export async function listExperiences({ filters = {}, sort = 'relevant', page = 
     );
   }
 
-  const sortFn = SORT_FNS[sort] || SORT_FNS.relevant;
+  const sortKey = normText(sort) || 'relevance';
+  const sortFn = SORT_FNS[sortKey] || SORT_FNS.relevance;
   items = [...items].sort(sortFn);
 
   const total = items.length;
@@ -283,7 +422,7 @@ export async function listExperiences({ filters = {}, sort = 'relevant', page = 
   const safePage = Math.min(Math.max(1, page), totalPages);
   const paged = items
     .slice((safePage - 1) * perPage, safePage * perPage)
-    .map((e) => withEffectiveStats(store, e));
+    .map((e) => withAuthorAndStats(store, e));
 
   return { items: paged, total, page: safePage, totalPages };
 }
@@ -432,7 +571,7 @@ export async function listSaved({ folderId, q } = {}) {
     .map((s) => {
       const exp = mergedExperiences(store).find((e) => e.id === s.experienceId);
       if (!exp || exp.status !== 'approved') return null;
-      return { ...withEffectiveStats(store, exp), folderId: s.folderId, savedAt: s.savedAt };
+      return { ...withAuthorAndStats(store, exp), folderId: s.folderId, savedAt: s.savedAt };
     })
     .filter(Boolean);
   if (q) {
@@ -661,6 +800,14 @@ export async function reportContent(targetType, targetId, reason) {
   await latency();
   const store = loadStore();
   const user = requireAuth(store);
+  // The UI calls reportContent({ experienceId, reason, details }); normalize
+  // a single options object into the (targetType, targetId, reason) shape.
+  if (targetType && typeof targetType === 'object') {
+    const obj = targetType;
+    targetId = obj.experienceId || obj.targetId || obj.id;
+    reason = obj.reason;
+    targetType = obj.targetType || 'experience';
+  }
   const report = {
     id: `rep-${Date.now()}`,
     targetType,
@@ -687,7 +834,7 @@ export async function findSimilar(input) {
   const scored = pool
     .map((experience) => {
       const { score, factors } = scoreSimilarity(input, experience);
-      return { experience: withEffectiveStats(store, experience), score, factors };
+      return { experience: withAuthorAndStats(store, experience), score, factors };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 8);
@@ -720,6 +867,13 @@ export async function aiAnalyzeDecision(input) {
     if (outcomes[experience.outcome] !== undefined) outcomes[experience.outcome] += 1;
   });
   const reached = outcomes.successful + outcomes.partially_successful;
+  // Most repeated "what worked" theme among the similar records.
+  const workedThemes = themeCounts(
+    top.map(({ experience }) => experience),
+    'whatWorked',
+    WORKED_THEMES
+  );
+  const topWorked = workedThemes[0];
   const patterns = [
     {
       title: 'Client and customer acquisition is the most common bottleneck',
@@ -731,13 +885,17 @@ export async function aiAnalyzeDecision(input) {
       detail: `Based on the ${records} most similar available records out of ${totalInDataset} in the dataset.`,
       records,
     },
-    {
-      title: 'Underestimating time-to-first-result is a repeated theme',
-      detail: `Mentioned across ${top.filter(({ experience }) =>
-        (experience.lessons || []).join(' ').toLowerCase().includes('month')
-      ).length} of ${records} most similar records.`,
-      records,
-    },
+    topWorked && topWorked.count > 0
+      ? {
+          title: `What worked most often among similar journeys: ${topWorked.label.charAt(0).toLowerCase()}${topWorked.label.slice(1)}`,
+          detail: `Cited as “what worked” in ${topWorked.count} of ${records} most similar records.`,
+          records,
+        }
+      : {
+          title: 'Underestimating time-to-first-result is a repeated theme',
+          detail: `Reported across ${records} similar journeys — expect the first results to take longer than planned.`,
+          records,
+        },
   ];
 
   const questions = [
@@ -1342,7 +1500,7 @@ export async function adminCategories() {
   await latency();
   const store = loadStore();
   requireAdmin(store);
-  return [...seedCategories, ...store.categories];
+  return [...seedCategories, ...store.categories].map((c) => withRealCategoryCount(store, c));
 }
 
 export async function createCategory(data) {
@@ -1422,10 +1580,21 @@ export async function adminAnalytics() {
 // ---------------------------------------------------------------------------
 // Categories (public)
 // ---------------------------------------------------------------------------
+// Seed category experienceCounts are illustrative totals; the UI must show
+// counts computed from the actual dataset.
+function categoryExperienceCount(store, slug) {
+  const user = sessionUser(store);
+  return visibleExperiences(store, user).filter((e) => e.category === slug).length;
+}
+
+function withRealCategoryCount(store, category) {
+  return { ...category, experienceCount: categoryExperienceCount(store, category.slug) };
+}
+
 export async function listCategories() {
   await latency();
   const store = loadStore();
-  return [...seedCategories, ...store.categories];
+  return [...seedCategories, ...store.categories].map((c) => withRealCategoryCount(store, c));
 }
 
 export async function getCategory(slug) {
@@ -1442,8 +1611,8 @@ export async function getCategory(slug) {
     .filter((e) => e.category === slug)
     .sort((a, b) => (b.stats?.views || 0) - (a.stats?.views || 0))
     .slice(0, 4)
-    .map((e) => withEffectiveStats(store, e));
-  return { ...category, popular };
+    .map((e) => withAuthorAndStats(store, e));
+  return { ...withRealCategoryCount(store, category), popular };
 }
 
 // ---------------------------------------------------------------------------

@@ -13,7 +13,7 @@ import CommentThread from '../../components/CommentThread/CommentThread.jsx';
 import { SkeletonCard, SkeletonText } from '../../components/Skeleton/Skeleton.jsx';
 import ErrorState from '../../components/ErrorState/ErrorState.jsx';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
-import { formatDate, timeAgo } from '../../utils/format.js';
+import { formatDate, formatNumber, timeAgo } from '../../utils/format.js';
 import './ExperienceDetail.css';
 
 const REPORT_REASONS = [
@@ -242,7 +242,7 @@ export default function ExperienceDetail() {
             )}
             {exp.stats && (
               <span className="detail__meta-item">
-                <Icon name="eye" size={14} /> {exp.stats.views} views
+                <Icon name="eye" size={14} /> {formatNumber(exp.stats.views)} views
               </span>
             )}
           </div>

@@ -160,9 +160,9 @@ export default function Dashboard() {
 
           {activeDecisions.length > 0 && (
             <section className="dash-section">
-              <div className="section-head">
-                <h2 className="section-title">Active Decisions</h2>
-                <Link to="/decisions" className="section-link">
+              <div className="dash-section-head">
+                <h2 className="dash-section-title">Active Decisions</h2>
+                <Link to="/decisions" className="dash-section-link">
                   View all <Icon name="arrowRight" />
                 </Link>
               </div>
@@ -176,10 +176,10 @@ export default function Dashboard() {
 
           {myExperiences.length > 0 && (
             <section className="dash-section">
-              <div className="section-head">
-                <h2 className="section-title">My Experiences</h2>
+              <div className="dash-section-head">
+                <h2 className="dash-section-title">My Experiences</h2>
                 {username && (
-                  <Link to={`/profile/${username}`} className="section-link">
+                  <Link to={`/profile/${username}`} className="dash-section-link">
                     View all <Icon name="arrowRight" />
                   </Link>
                 )}
@@ -194,9 +194,9 @@ export default function Dashboard() {
 
           {saved.length > 0 && (
             <section className="dash-section">
-              <div className="section-head">
-                <h2 className="section-title">Saved</h2>
-                <Link to="/saved" className="section-link">
+              <div className="dash-section-head">
+                <h2 className="dash-section-title">Saved</h2>
+                <Link to="/saved" className="dash-section-link">
                   View all <Icon name="arrowRight" />
                 </Link>
               </div>
@@ -210,9 +210,9 @@ export default function Dashboard() {
 
           {recommended.length > 0 && (
             <section className="dash-section">
-              <div className="section-head">
-                <h2 className="section-title">Recommended for you</h2>
-                <Link to="/experiences" className="section-link">
+              <div className="dash-section-head">
+                <h2 className="dash-section-title">Recommended for you</h2>
+                <Link to="/experiences" className="dash-section-link">
                   Browse all <Icon name="arrowRight" />
                 </Link>
               </div>
