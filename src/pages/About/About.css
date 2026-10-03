@@ -1,0 +1,203 @@
+.static-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+  color: var(--text);
+}
+
+.static-hero {
+  margin-bottom: 56px;
+}
+
+.static-kicker {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.static-hero h1 {
+  margin: 0 0 16px;
+  font-size: 42px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.static-lede {
+  margin: 0 0 28px;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text-2);
+  max-width: 640px;
+}
+
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.toc a {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.toc a:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.static-section {
+  margin-bottom: 52px;
+  scroll-margin-top: 24px;
+}
+
+.static-section h2 {
+  margin: 0 0 18px;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.static-section h3 {
+  margin: 28px 0 10px;
+  font-size: 18px;
+}
+
+.static-section p {
+  margin: 0 0 16px;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+
+.static-section p strong {
+  color: var(--text);
+}
+
+.static-section ul,
+.static-section ol {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  color: var(--text-2);
+  font-size: 15.5px;
+  line-height: 1.75;
+}
+
+.static-section li {
+  margin-bottom: 8px;
+}
+
+.about-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.about-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 20px;
+}
+
+.about-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.about-card.is-not .about-card-icon {
+  background: rgba(122, 127, 135, 0.12);
+  color: var(--muted);
+}
+
+.about-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.about-card p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.loop-steps {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.loop-step {
+  display: flex;
+  gap: 18px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.loop-step:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.loop-num {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  padding-top: 3px;
+}
+
+.loop-step h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.loop-step p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.loop-arrow-note {
+  margin-top: 22px !important;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+@media (max-width: 720px) {
+  .static-hero h1 {
+    font-size: 32px;
+  }
+
+  .about-cards {
+    grid-template-columns: 1fr;
+  }
+}

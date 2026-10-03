@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://abdulmalik0322.github.io/deadend/sitemap.xml

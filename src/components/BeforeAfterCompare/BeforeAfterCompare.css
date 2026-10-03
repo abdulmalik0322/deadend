@@ -1,0 +1,77 @@
+.ba-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ba-col {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.ba-col-head {
+  padding: 12px 18px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+}
+
+.ba-col-head--after {
+  color: var(--accent);
+}
+
+.ba-rows {
+  padding: 8px 18px 14px;
+}
+
+.ba-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.ba-row:last-child {
+  border-bottom: none;
+}
+
+.ba-row-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ba-row-value {
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ba-delta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .ba-compare {
+    grid-template-columns: 1fr;
+  }
+}

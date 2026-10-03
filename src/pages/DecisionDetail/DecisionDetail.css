@@ -1,0 +1,666 @@
+.dd-page {
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 2rem 1.25rem 4rem;
+  color: var(--text);
+}
+
+.dd-container {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.dd-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dd-notfound-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.dd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+}
+
+.dd-back svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.dd-back:hover {
+  color: var(--text);
+}
+
+.dd-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 0.3rem;
+}
+
+.dd-header {
+  margin-bottom: 1.5rem;
+}
+
+.dd-header-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.dd-id-chip {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dd-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.dd-status.st-planning {
+  color: var(--warning);
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.dd-status.st-active {
+  color: var(--accent);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.dd-status.st-completed {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.dd-status.st-abandoned {
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.dd-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0 0 0.6rem;
+  letter-spacing: -0.01em;
+}
+
+.dd-created {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0 0 1.1rem;
+}
+
+.dd-created svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.dd-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 0.65rem;
+  padding: 0.6rem 1.15rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+
+.dd-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.dd-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dd-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dd-btn-primary {
+  background: var(--accent);
+  color: #0a0a0b;
+}
+
+.dd-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.dd-btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-2);
+}
+
+.dd-btn-ghost:hover:not(:disabled) {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.dd-btn-danger {
+  background: var(--danger);
+  color: #0a0a0b;
+}
+
+.dd-btn-danger-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-2);
+}
+
+.dd-btn-danger-ghost:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.dd-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.3rem;
+  border-radius: 0.35rem;
+}
+
+.dd-link-btn svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.dd-link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.dd-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dd-link-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.dd-progress-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.dd-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.dd-progress-row > :first-child {
+  flex: 1;
+}
+
+.dd-progress-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dd-progress-section .dd-link-btn {
+  margin-top: 0.6rem;
+}
+
+.dd-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.dd-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dd-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.dd-stat-value {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.dd-section {
+  margin-bottom: 2.25rem;
+}
+
+.dd-section-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 1.1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dd-muted {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.dd-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.dd-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.78rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: var(--border);
+}
+
+.dd-timeline-item {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  padding: 0 0 1.4rem 0;
+}
+
+.dd-timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.dd-timeline-dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  color: transparent;
+  margin-top: 0.1rem;
+}
+
+.dd-timeline-dot svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.dd-timeline-item.is-done .dd-timeline-dot {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.dd-timeline-content {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 0.95rem 1.1rem;
+}
+
+.dd-timeline-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dd-timeline-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.dd-timeline-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dd-timeline-note {
+  margin: 0.5rem 0 0;
+  color: var(--text-2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.dd-timeline-content .dd-link-btn {
+  margin-top: 0.55rem;
+}
+
+.dd-milestones {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dd-milestone {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  padding: 0.75rem 1rem;
+}
+
+.dd-milestone.is-done {
+  opacity: 0.65;
+}
+
+.dd-milestone-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 0.4rem;
+  border: 1.5px solid var(--muted);
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.dd-milestone-check svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.dd-milestone-check:hover:not(:disabled) {
+  border-color: var(--success);
+}
+
+.dd-milestone-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dd-milestone-check:disabled {
+  cursor: default;
+}
+
+.dd-milestone.is-done .dd-milestone-check {
+  background: var(--success);
+  border-color: var(--success);
+  color: #0a0a0b;
+}
+
+.dd-milestone-title {
+  flex: 1;
+  font-size: 0.93rem;
+  color: var(--text);
+}
+
+.dd-milestone.is-done .dd-milestone-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.dd-milestone-due {
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dd-milestone-form {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.dd-milestone-form .dd-input:first-of-type {
+  flex: 2;
+  min-width: 12rem;
+}
+
+.dd-milestone-form .dd-input[type="date"] {
+  flex: 1;
+  min-width: 9rem;
+}
+
+.dd-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.65rem 0.85rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dd-input::placeholder {
+  color: var(--muted);
+}
+
+.dd-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+
+.dd-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+textarea.dd-input {
+  resize: vertical;
+  width: 100%;
+}
+
+.dd-updates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.dd-update {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 0.95rem 1.1rem;
+}
+
+.dd-update-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.dd-update-stage {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+}
+
+.dd-update-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dd-update-text {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.93rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.dd-outcome-cta {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 0.9rem;
+  padding: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dd-outcome-cta .dd-muted {
+  margin: 0;
+  max-width: 32rem;
+}
+
+.dd-similar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.dd-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.dd-modal-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.dd-modal-text {
+  color: var(--text-2);
+  font-size: 0.93rem;
+  line-height: 1.65;
+  margin: 0 0 1.25rem;
+}
+
+.dd-modal-error {
+  color: var(--danger);
+  font-size: 0.86rem;
+  margin: 0 0 1rem;
+}
+
+.dd-form-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.dd-modal-actions {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .dd-page {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .dd-title {
+    font-size: 1.5rem;
+  }
+
+  .dd-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dd-milestone-form {
+    flex-direction: column;
+  }
+
+  .dd-milestone-form .dd-btn {
+    justify-content: center;
+  }
+}

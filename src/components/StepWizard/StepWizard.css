@@ -1,0 +1,128 @@
+.step-wizard {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--radius);
+  padding: 4px;
+}
+
+.step--clickable .step-inner {
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.step--clickable .step-inner:hover {
+  background: var(--surface);
+}
+
+.step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.step--done .step-dot {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.step--active .step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0a0a0b;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.step-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.step--active .step-title {
+  color: var(--text);
+}
+
+.step-subtitle {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.step-connector {
+  position: absolute;
+  top: 21px;
+  left: calc(50% + 24px);
+  right: calc(-50% + 24px);
+  height: 1px;
+  background: var(--border);
+}
+
+.step--done .step-connector {
+  background: var(--accent-border);
+}
+
+@media (max-width: 640px) {
+  .step-wizard {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    flex-direction: row;
+    padding-left: 0;
+    width: 100%;
+  }
+
+  .step-connector {
+    top: auto;
+    bottom: calc(-100% + 40px);
+    left: 20px;
+    right: auto;
+    width: 1px;
+    height: calc(100% - 40px);
+  }
+
+  .step:last-child .step-connector {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step--active .step-dot {
+    box-shadow: none;
+  }
+}
