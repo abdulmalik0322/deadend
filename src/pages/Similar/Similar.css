@@ -55,6 +55,14 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.label svg {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .input,

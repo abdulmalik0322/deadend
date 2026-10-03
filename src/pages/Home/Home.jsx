@@ -97,21 +97,25 @@ const EXAMPLE_CHIPS = [
 const STEPS = [
   {
     n: '01',
+    icon: 'share',
     title: 'Share',
     text: 'People document what they actually tried — the goal, the starting point, the timeline, the investment, and the outcome. Including the failures most people never talk about.',
   },
   {
     n: '02',
+    icon: 'layers',
     title: 'Structure',
     text: 'Every experience is broken into the same consistent structure: starting point, timeline, investment, obstacles, and lessons. Stories become comparable data.',
   },
   {
     n: '03',
+    icon: 'scale',
     title: 'Compare',
     text: 'Describe your goal and your constraints. DEADEND ranks experiences by how similar the situation was to yours — same budget, skills, and starting point.',
   },
   {
     n: '04',
+    icon: 'target',
     title: 'Learn',
     text: 'See what worked, what failed, what it cost, and what they would do differently. Then track your own decision and add your outcome back to the loop.',
   },
@@ -246,7 +250,10 @@ export default function Home() {
         <ol className="steps">
           {STEPS.map((s) => (
             <li key={s.n} className="step">
-              <span className="step__n">{s.n}</span>
+              <span className="step__badge" aria-hidden="true">
+                <Icon name={s.icon} size={22} />
+              </span>
+              <p className="step__kicker">Step {s.n}</p>
               <h3 className="step__title">{s.title}</h3>
               <p className="step__text">{s.text}</p>
             </li>

@@ -194,7 +194,7 @@ export default function ExperienceDetail() {
   const doDifferently = (exp.doDifferently && exp.doDifferently.length > 0 ? exp.doDifferently : exp.lessons) || [];
 
   const startPointItems = [
-    { icon: 'doc', label: 'Education', value: sp.education },
+    { icon: 'graduation', label: 'Education', value: sp.education },
     { icon: 'chart', label: 'Experience level', value: sp.experienceLevel },
     { icon: 'wallet', label: 'Budget', value: sp.budget },
     { icon: 'clock', label: 'Available time', value: sp.timeAvailable },

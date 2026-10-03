@@ -41,7 +41,7 @@ const STEPS = [
   },
   {
     n: '03',
-    icon: 'compass',
+    icon: 'scale',
     title: 'Compare',
     tagline: 'Find people who started where you are.',
     text: 'Describe your own goal and constraints — your budget, experience level, available time, and skills. DEADEND ranks experiences by how similar the situation was to yours, so you read the stories that actually apply to you instead of generic advice written for someone with ten times your runway.',

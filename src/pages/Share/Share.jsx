@@ -483,28 +483,28 @@ export default function Share() {
           <>
             <div className="share-grid-2">
               <div className="share-field">
-                <label className="share-label" htmlFor="share-education">Education</label>
+                <label className="share-label" htmlFor="share-education"><Icon name="graduation" size={14} /> Education</label>
                 <input id="share-education" type="text" className="share-input" value={form.education}
                   onChange={(e) => set('education', e.target.value)} placeholder="e.g. BS Computer Science"
                   aria-invalid={Boolean(errors.education)} aria-describedby={errors.education ? 'share-err-education' : undefined} disabled={submitting} />
                 {fieldError('education')}
               </div>
               <div className="share-field">
-                <label className="share-label" htmlFor="share-exp-level">Experience level</label>
+                <label className="share-label" htmlFor="share-exp-level"><Icon name="chart" size={14} /> Experience level</label>
                 <input id="share-exp-level" type="text" className="share-input" value={form.experienceLevel}
                   onChange={(e) => set('experienceLevel', e.target.value)} placeholder="e.g. Beginner, 2 years in marketing"
                   aria-invalid={Boolean(errors.experienceLevel)} aria-describedby={errors.experienceLevel ? 'share-err-experienceLevel' : undefined} disabled={submitting} />
                 {fieldError('experienceLevel')}
               </div>
               <div className="share-field">
-                <label className="share-label" htmlFor="share-budget">Starting budget</label>
+                <label className="share-label" htmlFor="share-budget"><Icon name="wallet" size={14} /> Starting budget</label>
                 <input id="share-budget" type="text" className="share-input" value={form.budget}
                   onChange={(e) => set('budget', e.target.value)} placeholder="e.g. PKR 50,000"
                   aria-invalid={Boolean(errors.budget)} aria-describedby={errors.budget ? 'share-err-budget' : undefined} disabled={submitting} />
                 {fieldError('budget')}
               </div>
               <div className="share-field">
-                <label className="share-label" htmlFor="share-time">Time available</label>
+                <label className="share-label" htmlFor="share-time"><Icon name="clock" size={14} /> Time available</label>
                 <input id="share-time" type="text" className="share-input" value={form.timeAvailable}
                   onChange={(e) => set('timeAvailable', e.target.value)} placeholder="e.g. 2 hours per day"
                   aria-invalid={Boolean(errors.timeAvailable)} aria-describedby={errors.timeAvailable ? 'share-err-timeAvailable' : undefined} disabled={submitting} />
@@ -512,14 +512,14 @@ export default function Share() {
               </div>
             </div>
             <div className="share-field">
-              <label className="share-label" htmlFor="share-location">Location</label>
+              <label className="share-label" htmlFor="share-location"><Icon name="pin" size={14} /> Location</label>
               <input id="share-location" type="text" className="share-input" value={form.location}
                 onChange={(e) => set('location', e.target.value)} placeholder="e.g. Lahore"
                 aria-invalid={Boolean(errors.location)} aria-describedby={errors.location ? 'share-err-location' : undefined} disabled={submitting} />
               {fieldError('location')}
             </div>
             <div className="share-field">
-              <label className="share-label" htmlFor="share-skills">Relevant skills</label>
+              <label className="share-label" htmlFor="share-skills"><Icon name="zap" size={14} /> Relevant skills</label>
               <input id="share-skills" type="text" className="share-input" value={form.skills}
                 onChange={(e) => set('skills', e.target.value)} placeholder="Comma separated, e.g. design, copywriting, Excel"
                 disabled={submitting} />

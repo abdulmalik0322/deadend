@@ -112,7 +112,7 @@ export default function Similar() {
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="field full">
-              <label className="label" htmlFor="similar-goal">Goal</label>
+              <label className="label" htmlFor="similar-goal"><Icon name="target" size={14} /> Goal</label>
               <input
                 id="similar-goal"
                 className="input"
@@ -123,7 +123,7 @@ export default function Similar() {
               />
             </div>
             <div className="field">
-              <label className="label" htmlFor="similar-country">Country</label>
+              <label className="label" htmlFor="similar-country"><Icon name="globe" size={14} /> Country</label>
               <input
                 id="similar-country"
                 className="input"
@@ -134,7 +134,7 @@ export default function Similar() {
               />
             </div>
             <div className="field">
-              <label className="label" htmlFor="similar-budget">Budget</label>
+              <label className="label" htmlFor="similar-budget"><Icon name="wallet" size={14} /> Budget</label>
               <select id="similar-budget" className="select" value={form.budget} onChange={set('budget')}>
                 <option value="">Select a range</option>
                 {BUDGET_OPTIONS.map((o) => (
@@ -143,7 +143,7 @@ export default function Similar() {
               </select>
             </div>
             <div className="field">
-              <label className="label" htmlFor="similar-experience">Experience</label>
+              <label className="label" htmlFor="similar-experience"><Icon name="chart" size={14} /> Experience</label>
               <select id="similar-experience" className="select" value={form.experienceLevel} onChange={set('experienceLevel')}>
                 <option value="">Select your level</option>
                 {EXPERIENCE_OPTIONS.map((o) => (
@@ -152,7 +152,7 @@ export default function Similar() {
               </select>
             </div>
             <div className="field">
-              <label className="label" htmlFor="similar-time">Time available</label>
+              <label className="label" htmlFor="similar-time"><Icon name="clock" size={14} /> Time available</label>
               <select id="similar-time" className="select" value={form.timeAvailable} onChange={set('timeAvailable')}>
                 <option value="">Select availability</option>
                 {TIME_OPTIONS.map((o) => (
@@ -161,7 +161,7 @@ export default function Similar() {
               </select>
             </div>
             <div className="field full">
-              <label className="label" htmlFor="similar-skills">Skills</label>
+              <label className="label" htmlFor="similar-skills"><Icon name="zap" size={14} /> Skills</label>
               <input
                 id="similar-skills"
                 className="input"
