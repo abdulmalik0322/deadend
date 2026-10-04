@@ -1,13 +1,111 @@
 // DEADEND REST API adapter.
-// Same function surface as mockAdapter, backed by an Express API.
-// Every function throws until VITE_API_MODE=rest and VITE_API_URL are configured.
+// Same function surface as mockAdapter, backed by the Express API.
+// Active when VITE_API_MODE=rest, or when VITE_API_URL is set (even if MODE is unset).
+// Auth token lives in localStorage["deadend_token"], sent as `Authorization: Bearer <token>`.
 
-const NOT_CONFIGURED =
-  'REST backend not configured. Set VITE_API_MODE=rest and VITE_API_URL to connect the Express API.';
+const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const TOKEN_KEY = 'deadend_token';
+const DRAFT_PREFIX = 'deadend_draft_';
 
-function notConfigured() {
-  return new Error(NOT_CONFIGURED);
+function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
+
+function setToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+class ApiError extends Error {
+  constructor(message, { status, code } = {}) {
+    super(message);
+    this.status = status;
+    if (code) this.code = code;
+  }
+}
+
+function isNoFilter(value) {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'string') {
+    const t = value.trim();
+    return t === '' || t === 'Any';
+  }
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+}
+
+function toCsv(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(',');
+  return value || '';
+}
+
+async function request(path, { method = 'GET', body, auth = false, query } = {}) {
+  if (!BASE) {
+    throw new ApiError(
+      'REST backend not configured. Set VITE_API_URL to connect the Express API.'
+    );
+  }
+  let url = `${BASE}${path}`;
+  if (query) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) {
+      if (v === undefined || v === null || v === '') continue;
+      params.set(k, String(v));
+    }
+    const qs = params.toString();
+    if (qs) url += `?${qs}`;
+  }
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getToken();
+  if (auth && token) headers.Authorization = `Bearer ${token}`;
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError('Could not reach the server. Check your connection and try again.', {
+      status: 0,
+      code: 'NETWORK',
+    });
+  }
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const message =
+      (data && (data.error || data.message)) || `Request failed (${res.status})`;
+    const err = new ApiError(message, { status: res.status });
+    if (res.status === 401) err.code = 'INVALID_CREDENTIALS';
+    if (res.status === 403 && /suspend/i.test(message)) err.code = 'SUSPENDED';
+    if (res.status === 409 && /email/i.test(message)) err.code = 'EMAIL_TAKEN';
+    if (res.status === 404) err.code = 'NOT_FOUND';
+    throw err;
+  }
+  return data;
+}
+
+const get = (path, opts = {}) => request(path, { ...opts, method: 'GET' });
+const post = (path, body, opts = {}) => request(path, { ...opts, method: 'POST', body });
+const patch = (path, body, opts = {}) => request(path, { ...opts, method: 'PATCH', body });
+const put = (path, body, opts = {}) => request(path, { ...opts, method: 'PUT', body });
+const del = (path, opts = {}) => request(path, { ...opts, method: 'DELETE' });
 
 // ---------------------------------------------------------------------------
 // Stats / discovery
@@ -15,52 +113,70 @@ function notConfigured() {
 
 // GET /api/stats -> {experiences, decisions, contributors, countries}
 export async function getStats() {
-  throw notConfigured();
+  return get('/api/stats');
 }
 
 // GET /api/experiences/search?q=..&limit=6 -> [{id, slug, title, categoryLabel, outcome}]
 export async function searchExperiences(query, { limit = 6 } = {}) {
-  void query;
-  void limit;
-  throw notConfigured();
+  return get('/api/experiences/search', { query: { q: query, limit } });
 }
 
-// GET /api/experiences?category=..&country=..&outcome=..&budget=..&experienceLevel=..&timeAvailable=..&skills=..&tags=..&q=..&sort=..&page=..&perPage=.. -> {items, total, page, totalPages}
+// GET /api/experiences?... -> {items, total, page, totalPages}
 export async function listExperiences({ filters = {}, sort = 'relevant', page = 1, perPage = 9 } = {}) {
-  void filters;
-  void sort;
-  void page;
-  void perPage;
-  throw notConfigured();
+  const q = { page, limit: perPage, sort };
+  if (!isNoFilter(filters.category)) q.category = filters.category;
+  if (!isNoFilter(filters.country)) q.country = filters.country;
+  if (!isNoFilter(filters.goal)) q.goal = filters.goal;
+  if (!isNoFilter(filters.budget)) q.budget = filters.budget;
+  if (!isNoFilter(filters.experienceLevel)) q.experienceLevel = filters.experienceLevel;
+  if (!isNoFilter(filters.timeAvailable)) q.timeAvailable = filters.timeAvailable;
+  const outcomes = [
+    ...(filters.outcome ? [filters.outcome] : []),
+    ...(Array.isArray(filters.outcomes) ? filters.outcomes : []),
+  ].filter(Boolean);
+  if (outcomes.length) q.outcomes = outcomes.join(',');
+  const skills = toCsv(filters.skills);
+  if (skills) q.skills = skills;
+  const tags = toCsv(filters.tags);
+  if (tags) q.tags = tags;
+  if (filters.q) q.q = filters.q;
+
+  const data = await get('/api/experiences', { query: q, auth: true });
+  return {
+    items: data.items || [],
+    total: data.total || 0,
+    page: data.page || 1,
+    totalPages: data.pages || 1,
+  };
 }
 
-// GET /api/experiences/:slug -> full experience + author
+// GET /api/experiences/:slug -> full experience (+ records a view)
 export async function getExperience(slug) {
-  void slug;
-  throw notConfigured();
+  const exp = await get(`/api/experiences/${encodeURIComponent(slug)}`, { auth: true });
+  if (exp && exp.id) {
+    post(`/api/experiences/${encodeURIComponent(exp.id)}/view`, undefined).catch(() => {});
+  }
+  return exp;
 }
 
 // ---------------------------------------------------------------------------
 // Experience mutations
 // ---------------------------------------------------------------------------
 
-// POST /api/experiences {title, category, goal, ...} -> created experience (status pending)
+// POST /api/experiences -> created experience (status pending)
 export async function createExperience(data) {
-  void data;
-  throw notConfigured();
+  return post('/api/experiences', data, { auth: true });
 }
 
-// PUT /api/experiences/:id {fields} -> updated experience (owner or admin)
+// PATCH /api/experiences/:id -> updated experience (owner or admin)
 export async function updateExperience(id, data) {
-  void id;
-  void data;
-  throw notConfigured();
+  return patch(`/api/experiences/${encodeURIComponent(id)}`, data, { auth: true });
 }
 
-// DELETE /api/experiences/:id -> {ok:true} (owner or admin)
+// DELETE /api/experiences/:id -> {ok:true}
 export async function deleteExperience(id) {
-  void id;
-  throw notConfigured();
+  await del(`/api/experiences/${encodeURIComponent(id)}`, { auth: true });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -69,182 +185,197 @@ export async function deleteExperience(id) {
 
 // POST /api/experiences/:id/save {folderId?} -> {ok:true, saved:true}
 export async function saveExperience(id, folderId = null) {
-  void id;
-  void folderId;
-  throw notConfigured();
+  await post(`/api/experiences/${encodeURIComponent(id)}/save`, { folderId }, { auth: true });
+  return { ok: true, saved: true };
 }
 
 // DELETE /api/experiences/:id/save -> {ok:true, saved:false}
 export async function unsaveExperience(id) {
-  void id;
-  throw notConfigured();
+  await del(`/api/experiences/${encodeURIComponent(id)}/save`, { auth: true });
+  return { ok: true, saved: false };
 }
 
 // GET /api/saved?folderId=..&q=.. -> [{...experience, folderId, savedAt}]
 export async function listSaved({ folderId, q } = {}) {
-  void folderId;
-  void q;
-  throw notConfigured();
+  return get('/api/saved', { auth: true, query: { folderId, q } });
 }
 
-// GET /api/folders -> [{id, name, count}]
+// GET /api/saved/folders -> [{id, name, count}]
 export async function listFolders() {
-  throw notConfigured();
+  return get('/api/saved/folders', { auth: true });
 }
 
-// POST /api/folders {name} -> created folder
+// POST /api/saved/folders {name} -> created folder
 export async function createFolder(name) {
-  void name;
-  throw notConfigured();
+  return post('/api/saved/folders', { name }, { auth: true });
 }
 
-// PUT /api/folders/:id {name} -> updated folder
+// PATCH /api/saved/folders/:id {name} -> updated folder
 export async function updateFolder(id, name) {
-  void id;
-  void name;
-  throw notConfigured();
+  return patch(`/api/saved/folders/${encodeURIComponent(id)}`, { name }, { auth: true });
 }
 
-// DELETE /api/folders/:id -> {ok:true}
+// DELETE /api/saved/folders/:id -> {ok:true}
 export async function deleteFolder(id) {
-  void id;
-  throw notConfigured();
+  await del(`/api/saved/folders/${encodeURIComponent(id)}`, { auth: true });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------
 
-// GET /api/experiences/:id/comments -> comments with author objects
+// GET /api/experiences/:id/comments -> {items:[...]}
 export async function listComments(experienceId) {
-  void experienceId;
-  throw notConfigured();
+  const data = await get(
+    `/api/experiences/${encodeURIComponent(experienceId)}/comments`,
+    { auth: true }
+  );
+  return data.items || data;
 }
 
 // POST /api/experiences/:id/comments {body} -> created comment
 export async function addComment(experienceId, body) {
-  void experienceId;
-  void body;
-  throw notConfigured();
+  return post(
+    `/api/experiences/${encodeURIComponent(experienceId)}/comments`,
+    { body },
+    { auth: true }
+  );
 }
 
 // POST /api/comments/:id/reply {body} -> created reply
 export async function replyComment(commentId, body) {
-  void commentId;
-  void body;
-  throw notConfigured();
+  return post(`/api/comments/${encodeURIComponent(commentId)}/reply`, { body }, { auth: true });
 }
 
-// POST /api/comments/:id/like -> {ok:true, liked:bool} (toggles)
+// POST /api/comments/:id/like -> {ok:true, liked} (toggles)
 export async function likeComment(id) {
-  void id;
-  throw notConfigured();
+  const data = await post(`/api/comments/${encodeURIComponent(id)}/like`, undefined, {
+    auth: true,
+  });
+  return { ok: true, liked: data.liked, likes: data.likes };
 }
 
-// DELETE /api/comments/:id -> {ok:true} (owner or admin)
+// DELETE /api/comments/:id -> {ok:true}
 export async function deleteComment(id) {
-  void id;
-  throw notConfigured();
+  await del(`/api/comments/${encodeURIComponent(id)}`, { auth: true });
+  return { ok: true };
 }
 
 // POST /api/reports {targetType, targetId, reason} -> {ok:true}
 export async function reportContent(targetType, targetId, reason) {
-  void targetType;
-  void targetId;
-  void reason;
-  throw notConfigured();
+  await post('/api/reports', { targetType, targetId, reason }, { auth: true });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
 // Similarity & AI analysis
 // ---------------------------------------------------------------------------
 
-// POST /api/similar {goal, country, budget, experienceLevel, timeAvailable, skills[]} -> {results:[{experience, score, factors}], totalInDataset}
+// POST /api/similar -> {results:[{experience, score, factors}], totalInDataset}
 export async function findSimilar(input) {
-  void input;
-  throw notConfigured();
+  return post('/api/similar', input || {});
 }
 
-// POST /api/ai/analyze {title, goal, country, budget, experienceLevel, timeAvailable, skills} -> {relevantCount, obstacles[], patterns[], questions[], relatedExperiences[], summary}
+// POST /api/ai/analyze -> frontend-shaped report
 export async function aiAnalyzeDecision(input) {
-  void input;
-  throw notConfigured();
+  const data = await post('/api/ai/analyze', input || {}, { auth: true });
+  const stats = data.datasetStats || {};
+  const obstacles = (stats.topObstacles || []).map((o) => ({
+    text: o.text,
+    count: o.count,
+  }));
+  return {
+    relevantCount: stats.relevant ?? stats.total ?? 0,
+    obstacles,
+    patterns: data.patterns || [],
+    questions: data.questions || [],
+    relatedExperiences: data.related || [],
+    summary: `Based on ${stats.relevant ?? 0} relevant experiences in the current dataset, the most reported obstacle is "${obstacles[0]?.text || '—'}" (reported ${obstacles[0]?.count || 0} times). These summaries describe patterns in submitted experiences — they are not predictions.`,
+    _input: data.input,
+    _datasetStats: stats,
+  };
 }
 
 // POST /api/ai/structure {text} -> structured story draft
 export async function structureStory(text) {
-  void text;
-  throw notConfigured();
+  return post('/api/ai/structure', { text }, { auth: true });
 }
 
 // ---------------------------------------------------------------------------
 // Decisions
 // ---------------------------------------------------------------------------
 
-// GET /api/decisions -> current user's decisions
+// GET /api/decisions -> current user's decisions (array)
 export async function listDecisions() {
-  throw notConfigured();
+  const data = await get('/api/decisions', { auth: true });
+  return data.items || data;
 }
 
-// GET /api/decisions/:id -> decision (owner or admin)
+// GET /api/decisions/:id -> decision
 export async function getDecision(id) {
-  void id;
-  throw notConfigured();
+  return get(`/api/decisions/${encodeURIComponent(id)}`, { auth: true });
 }
 
-// POST /api/decisions {title, situation, expectations} -> created decision (status planning)
+// POST /api/decisions -> created decision (status planning)
 export async function createDecision(data) {
-  void data;
-  throw notConfigured();
+  return post('/api/decisions', data, { auth: true });
 }
 
-// PUT /api/decisions/:id {fields} -> updated decision
+// PATCH /api/decisions/:id -> updated decision
 export async function updateDecision(id, data) {
-  void id;
-  void data;
-  throw notConfigured();
+  return patch(`/api/decisions/${encodeURIComponent(id)}`, data, { auth: true });
 }
 
-// POST /api/decisions/:id/updates {text, stage?} -> updated decision
+// POST /api/decisions/:id/updates {text, stage?} -> updated decision (refetch)
 export async function addDecisionUpdate(id, { text, stage } = {}) {
-  void id;
-  void text;
-  void stage;
-  throw notConfigured();
+  await post(`/api/decisions/${encodeURIComponent(id)}/updates`, { text, stage }, { auth: true });
+  return getDecision(id);
 }
 
-// POST /api/decisions/:id/milestones {title, dueDate} -> updated decision
+// POST /api/decisions/:id/milestones {title, dueDate} -> updated decision (refetch)
 export async function addMilestone(id, { title, dueDate } = {}) {
-  void id;
-  void title;
-  void dueDate;
-  throw notConfigured();
+  await post(
+    `/api/decisions/${encodeURIComponent(id)}/milestones`,
+    { title, dueDate },
+    { auth: true }
+  );
+  return getDecision(id);
 }
 
-// POST /api/decisions/:id/milestones/:milestoneId/toggle -> updated decision
+// PATCH /api/decisions/:id/milestones/:milestoneId -> updated decision (refetch)
 export async function toggleMilestone(decisionId, milestoneId) {
-  void decisionId;
-  void milestoneId;
-  throw notConfigured();
+  await patch(
+    `/api/decisions/${encodeURIComponent(decisionId)}/milestones/${encodeURIComponent(milestoneId)}`,
+    {},
+    { auth: true }
+  );
+  return getDecision(decisionId);
 }
 
 // POST /api/decisions/:id/complete {duration, investment, result} -> completed decision
 export async function completeDecision(id, actual) {
-  void id;
-  void actual;
-  throw notConfigured();
+  const a = actual || {};
+  return post(
+    `/api/decisions/${encodeURIComponent(id)}/complete`,
+    {
+      actualDuration: a.duration,
+      actualInvestment: a.investment,
+      actualResult: a.result,
+    },
+    { auth: true }
+  );
 }
 
 // POST /api/decisions/:id/abandon -> abandoned decision
 export async function abandonDecision(id) {
-  void id;
-  throw notConfigured();
+  return post(`/api/decisions/${encodeURIComponent(id)}/abandon`, undefined, { auth: true });
 }
 
 // DELETE /api/decisions/:id -> {ok:true}
 export async function deleteDecision(id) {
-  void id;
-  throw notConfigured();
+  await del(`/api/decisions/${encodeURIComponent(id)}`, { auth: true });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -253,66 +384,81 @@ export async function deleteDecision(id) {
 
 // POST /api/auth/register {name, email, password} -> user
 export async function register({ name, email, password } = {}) {
-  void name;
-  void email;
-  void password;
-  throw notConfigured();
+  const data = await post('/api/auth/register', { name, email, password });
+  if (data.token) setToken(data.token);
+  return data.user;
 }
 
 // POST /api/auth/login {email, password} -> user
 export async function login(email, password) {
-  void email;
-  void password;
-  throw notConfigured();
+  const data = await post('/api/auth/login', { email, password });
+  if (data.token) setToken(data.token);
+  return data.user;
 }
 
 // POST /api/auth/logout -> {ok:true}
 export async function logout() {
-  throw notConfigured();
+  try {
+    await post('/api/auth/logout', undefined);
+  } catch {
+    /* logout is client-side; ignore server errors */
+  } finally {
+    setToken(null);
+  }
+  return { ok: true };
 }
 
 // GET /api/auth/me -> user or 401
 export async function me() {
-  throw notConfigured();
+  const token = getToken();
+  if (!token) {
+    throw new ApiError('Not authenticated', { status: 401, code: 'INVALID_CREDENTIALS' });
+  }
+  return get('/api/auth/me', { auth: true });
 }
 
-// PUT /api/users/me {fields} -> updated user
+// PUT /api/auth/profile -> updated user
 export async function updateProfile(data) {
-  void data;
-  throw notConfigured();
+  return put('/api/auth/profile', data, { auth: true });
+}
+
+// PUT /api/auth/password {currentPassword, newPassword} -> {ok:true}
+export async function changePassword(currentPassword, newPassword) {
+  await put('/api/auth/password', { currentPassword, newPassword }, { auth: true });
+  return { ok: true };
 }
 
 // POST /api/auth/forgot-password {email} -> {ok:true}
 export async function forgotPassword(email) {
-  void email;
-  throw notConfigured();
+  await post('/api/auth/forgot-password', { email });
+  return { ok: true };
 }
 
 // POST /api/auth/reset-password {token, password} -> {ok:true}
 export async function resetPassword(token, password) {
-  void token;
-  void password;
-  throw notConfigured();
+  await post('/api/auth/reset-password', { token, password });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
 
-// GET /api/notifications -> user's notifications
+// GET /api/notifications -> [notifications]
 export async function listNotifications() {
-  throw notConfigured();
+  return get('/api/notifications', { auth: true });
 }
 
 // PATCH /api/notifications/:id/read -> {ok:true}
 export async function markNotificationRead(id) {
-  void id;
-  throw notConfigured();
+  await patch(`/api/notifications/${encodeURIComponent(id)}/read`, undefined, { auth: true });
+  return { ok: true };
 }
 
 // PATCH /api/notifications/read-all -> {ok:true}
 export async function markAllNotificationsRead() {
-  throw notConfigured();
+  await patch('/api/notifications/read-all', undefined, { auth: true });
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -321,108 +467,135 @@ export async function markAllNotificationsRead() {
 
 // GET /api/admin/overview -> {users, experiences, decisions, pending, reports, comments}
 export async function adminOverview() {
-  throw notConfigured();
+  return get('/api/admin/overview', { auth: true });
 }
 
-// GET /api/admin/queue -> pending experiences with authors
+// GET /api/admin/moderation?status=pending -> [experiences]
 export async function adminQueue() {
-  throw notConfigured();
+  const data = await get('/api/admin/moderation', { auth: true, query: { status: 'pending' } });
+  return data.items || data;
 }
 
-// POST /api/admin/experiences/:id/approve -> {ok:true}
+// POST /api/admin/moderation/:id {action} -> {ok:true}
 export async function adminApprove(id) {
-  void id;
-  throw notConfigured();
+  await post(
+    `/api/admin/moderation/${encodeURIComponent(id)}`,
+    { action: 'approve' },
+    { auth: true }
+  );
+  return { ok: true };
 }
 
-// POST /api/admin/experiences/:id/reject {note} -> {ok:true}
+// POST /api/admin/moderation/:id {action, note} -> {ok:true}
 export async function adminReject(id, note) {
-  void id;
-  void note;
-  throw notConfigured();
+  await post(
+    `/api/admin/moderation/${encodeURIComponent(id)}`,
+    { action: 'reject', note },
+    { auth: true }
+  );
+  return { ok: true };
 }
 
-// GET /api/admin/reports -> open/resolved reports
+// GET /api/admin/reports -> [reports]
 export async function adminReports() {
-  throw notConfigured();
+  const data = await get('/api/admin/reports', { auth: true });
+  return data.items || data;
 }
 
 // POST /api/admin/reports/:id/resolve {action} -> {ok:true}
 export async function resolveReport(id, action) {
-  void id;
-  void action;
-  throw notConfigured();
+  await post(
+    `/api/admin/reports/${encodeURIComponent(id)}/resolve`,
+    { action },
+    { auth: true }
+  );
+  return { ok: true };
 }
 
-// GET /api/admin/users -> users with suspension flags
+// GET /api/admin/users -> [users]
 export async function adminUsers() {
-  throw notConfigured();
+  const data = await get('/api/admin/users', { auth: true });
+  return data.items || data;
 }
 
 // POST /api/admin/users/:id/suspend {suspended} -> {ok:true}
 export async function suspendUser(id, suspended) {
-  void id;
-  void suspended;
-  throw notConfigured();
+  await post(
+    `/api/admin/users/${encodeURIComponent(id)}/suspend`,
+    { suspended },
+    { auth: true }
+  );
+  return { ok: true };
 }
 
-// GET /api/admin/categories -> all categories
+// GET /api/admin/categories -> [categories]
 export async function adminCategories() {
-  throw notConfigured();
+  return get('/api/admin/categories', { auth: true });
 }
 
 // POST /api/admin/categories {name, description, icon} -> created category
 export async function createCategory(data) {
-  void data;
-  throw notConfigured();
+  return post('/api/admin/categories', data, { auth: true });
 }
 
-// PUT /api/admin/categories/:slug {fields} -> updated category
+// PUT /api/admin/categories/:slug -> updated category
 export async function updateCategory(slug, data) {
-  void slug;
-  void data;
-  throw notConfigured();
+  return put(`/api/admin/categories/${encodeURIComponent(slug)}`, data, { auth: true });
 }
 
 // GET /api/admin/analytics -> {signupsByMonth, experiencesByOutcome, topCategories}
 export async function adminAnalytics() {
-  throw notConfigured();
+  return get('/api/admin/analytics', { auth: true });
 }
 
 // ---------------------------------------------------------------------------
 // Categories (public)
 // ---------------------------------------------------------------------------
 
-// GET /api/categories -> categories with counts
+// GET /api/categories -> [categories with counts]
 export async function listCategories() {
-  throw notConfigured();
+  return get('/api/categories');
 }
 
 // GET /api/categories/:slug -> category + popular experiences
 export async function getCategory(slug) {
-  void slug;
-  throw notConfigured();
+  return get(`/api/categories/${encodeURIComponent(slug)}`);
 }
 
 // ---------------------------------------------------------------------------
-// Drafts
+// Drafts — local only in both modes (autosave lives in the browser)
 // ---------------------------------------------------------------------------
 
-// Local draft helpers (no REST equivalent; kept client-side in both modes)
+function draftKey(key) {
+  return `${DRAFT_PREFIX}${key}`;
+}
+
 export async function saveDraft(key, data) {
-  void key;
-  void data;
-  throw notConfigured();
+  try {
+    localStorage.setItem(draftKey(key), JSON.stringify({ data, savedAt: Date.now() }));
+  } catch {
+    /* ignore */
+  }
+  return { ok: true };
 }
 
 export async function loadDraft(key) {
-  void key;
-  throw notConfigured();
+  try {
+    const raw = localStorage.getItem(draftKey(key));
+    if (!raw) return null;
+    return JSON.parse(raw).data ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function clearDraft(key) {
-  void key;
-  throw notConfigured();
+  try {
+    localStorage.removeItem(draftKey(key));
+  } catch {
+    /* ignore */
+  }
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -467,6 +640,7 @@ const restAdapter = {
   logout,
   me,
   updateProfile,
+  changePassword,
   forgotPassword,
   resetPassword,
   listNotifications,

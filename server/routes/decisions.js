@@ -6,6 +6,10 @@ import {
   updateDecisionValidator,
   decisionUpdateValidator,
   milestoneValidator,
+  toggleMilestoneValidator,
+  completeDecisionValidator,
+  decisionIdParam,
+  milestoneIdParam,
 } from '../validators/decision.validator.js';
 import * as c from '../controllers/decision.controller.js';
 
@@ -16,13 +20,20 @@ router.use(protect);
 
 router.get('/', c.listDecisions);
 router.post('/', createDecisionValidator, validate, c.createDecision);
-router.get('/:id', c.getDecision);
-router.patch('/:id', updateDecisionValidator, validate, c.updateDecision);
-router.delete('/:id', c.deleteDecision);
-router.post('/:id/updates', decisionUpdateValidator, validate, c.addUpdate);
-router.post('/:id/milestones', milestoneValidator, validate, c.addMilestone);
-router.patch('/:id/milestones/:milestoneId', c.toggleMilestone);
-router.post('/:id/complete', c.completeDecision);
-router.post('/:id/abandon', c.abandonDecision);
+router.get('/:id', decisionIdParam, validate, c.getDecision);
+router.patch('/:id', decisionIdParam, updateDecisionValidator, validate, c.updateDecision);
+router.delete('/:id', decisionIdParam, validate, c.deleteDecision);
+router.post('/:id/updates', decisionIdParam, decisionUpdateValidator, validate, c.addUpdate);
+router.post('/:id/milestones', decisionIdParam, milestoneValidator, validate, c.addMilestone);
+router.patch(
+  '/:id/milestones/:mid',
+  decisionIdParam,
+  milestoneIdParam,
+  toggleMilestoneValidator,
+  validate,
+  c.toggleMilestone
+);
+router.post('/:id/complete', decisionIdParam, completeDecisionValidator, validate, c.completeDecision);
+router.post('/:id/abandon', decisionIdParam, validate, c.abandonDecision);
 
 export default router;

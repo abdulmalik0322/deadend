@@ -15,6 +15,11 @@ const decisionSchema = new mongoose.Schema(
       default: 'planning',
     },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    visibility: {
+      type: String,
+      enum: ['public', 'private'],
+      default: 'private',
+    },
     progress: { type: Number, default: 0, min: 0, max: 100 },
     situation: {
       location: { type: String, default: '' },
@@ -54,6 +59,7 @@ const decisionSchema = new mongoose.Schema(
       {
         date: { type: Date, default: Date.now },
         text: { type: String, trim: true },
+        stage: { type: String, trim: true, default: '' },
       },
     ],
   },

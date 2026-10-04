@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 
 const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000;
-const max = Number(process.env.RATE_LIMIT_MAX) || 100;
+const max = Number(process.env.RATE_LIMIT_MAX) || 300;
 
 function limiter({ windowMs: w, max: m, message }) {
   return rateLimit({
@@ -13,7 +13,7 @@ function limiter({ windowMs: w, max: m, message }) {
   });
 }
 
-/** General API traffic: 100 requests / 15 min per IP. */
+/** General API traffic: 300 requests / 15 min per IP. */
 export const apiLimiter = limiter({
   windowMs,
   max,

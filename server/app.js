@@ -19,17 +19,23 @@ import adminRoutes from './routes/admin.js';
 import aiRoutes from './routes/ai.js';
 import searchRoutes from './routes/search.js';
 import userRoutes from './routes/users.js';
+import setupRoutes from './routes/setup.js';
+import similarRoutes from './routes/similar.js';
+import statsRoutes from './routes/stats.js';
 
 const app = express();
 
 // Security + parsing
 app.use(helmet());
+// CORS: explicit allowlist from CLIENT_URL; when unset, reflect the request
+// origin in non-production only (deny in production). Credentials are
+// disabled — auth uses Bearer tokens, never cookies.
 app.use(
   cors({
     origin: process.env.CLIENT_URL
       ? process.env.CLIENT_URL.split(',').map((s) => s.trim())
-      : true,
-    credentials: true,
+      : process.env.NODE_ENV !== 'production',
+    credentials: false,
   })
 );
 app.use(morgan('dev'));
@@ -56,6 +62,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/setup', setupRoutes);
+app.use('/api/similar', similarRoutes);
+app.use('/api/stats', statsRoutes);
 
 // 404 + central error handling (order matters)
 app.use(notFound);

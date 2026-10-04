@@ -7,7 +7,12 @@ import app from './app.js';
 
 const PORT = process.env.PORT || 5000;
 
-await connectDB();
+try {
+  const conn = await connectDB();
+  console.log(`MongoDB connected: ${conn.connection.host}`);
+} catch (err) {
+  console.warn('DB unreachable — starting without database; API calls will fail');
+}
 
 app.listen(PORT, () => {
   console.log(`DEADEND server listening on port ${PORT}`);

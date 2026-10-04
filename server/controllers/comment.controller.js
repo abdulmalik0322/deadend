@@ -1,86 +1,49 @@
 import { Comment } from '../models/Comment.js';
 import { Experience } from '../models/Experience.js';
-import { Notification } from '../models/Notification.js';
-import { Report } from '../models/Report.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { presentComment } from '../utils/present.js';
+import { notify } from '../utils/notify.js';
+import { stripHtml } from '../utils/sanitize.js';
 
 function assertOwnerOrAdmin(ownerId, user) {
   if (user.role === 'admin') return;
   if (String(ownerId) !== user.id) throw new ApiError(403, 'Forbidden');
 }
 
-/**
- * GET /api/comments?experienceId=... — visible comments as a reply tree.
- */
-export const listComments = asyncHandler(async (req, res) => {
-  const { experienceId } = req.query;
-  if (!experienceId) throw new ApiError(400, 'experienceId query param is required');
+/** POST /api/comments/:id/reply — parent must be top-level (400 if nested). → 201 reply. */
+export const replyToComment = asyncHandler(async (req, res) => {
+  const parent = await Comment.findById(req.params.id).populate('experience', 'slug author');
+  if (!parent) throw new ApiError(404, 'Comment not found');
+  if (parent.parent) throw new ApiError(400, 'Can only reply to top-level comments');
 
-  const comments = await Comment.find({ experience: experienceId, status: 'visible' })
-    .populate('author', 'name username')
-    .sort({ createdAt: 1 })
-    .lean();
+  const body = stripHtml(req.body.body);
+  if (!body) throw new ApiError(400, 'Reply body is required');
 
-  const byId = new Map(comments.map((c) => [String(c._id), { ...c, replies: [] }]));
-  const roots = [];
-  for (const c of byId.values()) {
-    if (c.parent && byId.has(String(c.parent))) {
-      byId.get(String(c.parent)).replies.push(c);
-    } else {
-      roots.push(c);
-    }
-  }
-  res.json(roots);
-});
-
-/** POST /api/comments — notify the experience author (unless it's their own comment). */
-export const createComment = asyncHandler(async (req, res) => {
-  const { experienceId, body } = req.body;
-
-  const exp = await Experience.findById(experienceId).select('author title slug');
-  if (!exp) throw new ApiError(404, 'Experience not found');
-
-  const comment = await Comment.create({
+  const experienceId = parent.experience?._id || parent.experience;
+  const reply = await Comment.create({
     experience: experienceId,
     author: req.user.id,
     body,
-  });
-  await comment.populate('author', 'name username');
-
-  await Experience.updateOne({ _id: experienceId }, { $inc: { 'stats.comments': 1 } });
-
-  if (String(exp.author) !== req.user.id) {
-    await Notification.create({
-      user: exp.author,
-      type: 'comment',
-      title: 'New comment on your experience',
-      body: body.slice(0, 140),
-      link: `/experiences/${exp.slug}`,
-    });
-  }
-
-  res.status(201).json(comment);
-});
-
-/** POST /api/comments/:id/replies */
-export const replyToComment = asyncHandler(async (req, res) => {
-  const parent = await Comment.findById(req.params.id);
-  if (!parent) throw new ApiError(404, 'Comment not found');
-
-  const reply = await Comment.create({
-    experience: parent.experience,
-    author: req.user.id,
-    body: req.body.body,
     parent: parent._id,
   });
   await reply.populate('author', 'name username');
 
-  await Experience.updateOne({ _id: parent.experience }, { $inc: { 'stats.comments': 1 } });
-  res.status(201).json(reply);
+  await Experience.updateOne({ _id: experienceId }, { $inc: { 'stats.comments': 1 } });
+
+  if (String(parent.author) !== req.user.id) {
+    notify(String(parent.author), {
+      type: 'comment',
+      title: 'New reply to your comment',
+      body: body.slice(0, 140),
+      link: parent.experience?.slug ? `/experiences/${parent.experience.slug}` : '',
+    });
+  }
+
+  res.status(201).json(presentComment(reply, req.user.id));
 });
 
-/** POST /api/comments/:id/like — toggle like for the current user. */
+/** POST /api/comments/:id/like — toggle the current user's like. */
 export const toggleLike = asyncHandler(async (req, res) => {
   const comment = await Comment.findById(req.params.id);
   if (!comment) throw new ApiError(404, 'Comment not found');
@@ -96,37 +59,20 @@ export const toggleLike = asyncHandler(async (req, res) => {
   }
   await comment.save();
 
-  res.json({ likes: comment.likes, liked: !liked });
+  res.json({ ok: true, liked: !liked, likes: comment.likes });
 });
 
-/** DELETE /api/comments/:id — owner or admin. */
+/** DELETE /api/comments/:id — owner or admin; deletes replies too. */
 export const deleteComment = asyncHandler(async (req, res) => {
   const comment = await Comment.findById(req.params.id);
   if (!comment) throw new ApiError(404, 'Comment not found');
   assertOwnerOrAdmin(comment.author, req.user);
 
-  await Promise.all([
-    Comment.deleteMany({ parent: comment._id }),
-    comment.deleteOne(),
-  ]);
-  await Experience.updateOne({ _id: comment.experience }, { $inc: { 'stats.comments': -1 } });
-  res.json({ message: 'Comment deleted' });
-});
-
-/** POST /api/comments/:id/report */
-export const reportComment = asyncHandler(async (req, res) => {
-  const comment = await Comment.findById(req.params.id);
-  if (!comment) throw new ApiError(404, 'Comment not found');
-
-  const { reason, details = '' } = req.body;
-  if (!reason) throw new ApiError(400, 'reason is required');
-
-  const report = await Report.create({
-    targetType: 'comment',
-    targetId: comment._id,
-    reason,
-    details,
-    reportedBy: req.user.id,
-  });
-  res.status(201).json(report);
+  const replyCount = await Comment.countDocuments({ parent: comment._id });
+  await Promise.all([Comment.deleteMany({ parent: comment._id }), comment.deleteOne()]);
+  await Experience.updateOne(
+    { _id: comment.experience },
+    { $inc: { 'stats.comments': -(1 + replyCount) } }
+  );
+  res.json({ ok: true });
 });

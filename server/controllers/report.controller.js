@@ -1,7 +1,10 @@
+import { Experience } from '../models/Experience.js';
+import { Comment } from '../models/Comment.js';
 import { Report } from '../models/Report.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination } from '../utils/pagination.js';
+import { stripHtml } from '../utils/sanitize.js';
 
 const REASONS = [
   'spam',
@@ -11,6 +14,46 @@ const REASONS = [
   'dangerous_content',
   'other',
 ];
+
+const iso = (d) => (d ? new Date(d).toISOString() : null);
+
+/** Best-effort check that the reported target exists (skipped for users). */
+async function assertTargetExists(targetType, targetId) {
+  let exists = true;
+  try {
+    if (targetType === 'experience') {
+      exists = await Experience.exists({ _id: targetId });
+    } else if (targetType === 'comment') {
+      exists = await Comment.exists({ _id: targetId });
+    }
+  } catch {
+    return; // best effort — never fail the report on a lookup hiccup
+  }
+  if (!exists) {
+    throw new ApiError(404, `Reported ${targetType} not found`);
+  }
+}
+
+function presentReport(report) {
+  const r = typeof report.toObject === 'function' ? report.toObject() : report;
+  return {
+    id: String(r._id),
+    targetType: r.targetType,
+    targetId: String(r.targetId),
+    reason: r.reason,
+    details: r.details ?? '',
+    status: r.status,
+    reportedBy: r.reportedBy
+      ? {
+          id: String(r.reportedBy._id ?? r.reportedBy),
+          name: r.reportedBy.name || '',
+          username: r.reportedBy.username || '',
+        }
+      : null,
+    createdAt: iso(r.createdAt),
+    updatedAt: iso(r.updatedAt),
+  };
+}
 
 /** POST /api/reports — file a moderation report. */
 export const createReport = asyncHandler(async (req, res) => {
@@ -24,22 +67,23 @@ export const createReport = asyncHandler(async (req, res) => {
     throw new ApiError(400, `reason must be one of: ${REASONS.join(', ')}`);
   }
 
+  await assertTargetExists(targetType, targetId);
+
   const report = await Report.create({
     targetType,
     targetId,
     reason,
-    details,
+    details: stripHtml(String(details)),
     reportedBy: req.user.id,
   });
-  res.status(201).json(report);
+  res.status(201).json({ ok: true, id: String(report._id) });
 });
 
-/** GET /api/reports — admin: triage queue, ?status= / ?targetType= filters. */
+/** GET /api/reports — admin: triage queue, ?status= filter, newest first. */
 export const listReports = asyncHandler(async (req, res) => {
   const { page, limit, skip } = getPagination(req);
   const filter = {};
   if (req.query.status) filter.status = req.query.status;
-  if (req.query.targetType) filter.targetType = req.query.targetType;
 
   const [items, total] = await Promise.all([
     Report.find(filter)
@@ -51,21 +95,30 @@ export const listReports = asyncHandler(async (req, res) => {
     Report.countDocuments(filter),
   ]);
 
-  res.json({ page, limit, total, pages: Math.ceil(total / limit), items });
+  res.json({
+    items: items.map(presentReport),
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    limit,
+  });
 });
 
-/** PATCH /api/reports/:id — admin: { status: resolved | dismissed }. */
+/**
+ * PATCH /api/reports/:id — admin: { action: resolved | dismissed, note? }.
+ * Exported for reuse by the admin aliases under /api/admin.
+ */
 export const resolveReport = asyncHandler(async (req, res) => {
-  const { status } = req.body;
-  if (!['resolved', 'dismissed'].includes(status)) {
-    throw new ApiError(400, 'status must be resolved or dismissed');
+  const { action } = req.body;
+  if (!['resolved', 'dismissed'].includes(action)) {
+    throw new ApiError(400, 'action must be resolved or dismissed');
   }
 
   const report = await Report.findByIdAndUpdate(
     req.params.id,
-    { status },
+    { status: action },
     { new: true, runValidators: true }
   );
   if (!report) throw new ApiError(404, 'Report not found');
-  res.json(report);
+  res.json({ ok: true });
 });

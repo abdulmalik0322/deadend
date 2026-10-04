@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { isEmailConfigured, sendPasswordResetEmail } from '../utils/mailer.js';
 
 /** Sign a JWT carrying only the user id and role. */
 function signToken(user) {
@@ -81,39 +83,84 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 /**
- * MOCK password-reset request. Always responds 200 so we don't leak
- * which emails are registered. Production: generate a signed, expiring
- * token and email a reset link instead of returning anything.
+ * Request a password-reset email. Always responds 200 so we don't leak
+ * which emails are registered (no email oracle). When SMTP is not
+ * configured the endpoint is unusable and reports 503.
  */
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const exists = email ? await User.exists({ email }) : false;
-  res.json({
-    message: exists
-      ? 'Password reset instructions sent (mock).'
-      : 'If that email exists, reset instructions were sent (mock).',
-    mockResetToken: 'mock-reset-token',
-  });
+
+  if (!isEmailConfigured()) {
+    return res.status(503).json({
+      error: 'email_not_configured',
+      message: 'Password reset email is not configured',
+    });
+  }
+
+  const user = await User.findOne({ email });
+  if (user) {
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const clientUrl = (process.env.CLIENT_URL || '').split(',')[0].trim();
+    const resetUrl = `${clientUrl}/reset-password?token=${token}`;
+
+    try {
+      await sendPasswordResetEmail(user.email, resetUrl);
+    } catch (err) {
+      // Don't leave a dangling token the user was never told about.
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      throw new ApiError(502, 'email_failed');
+    }
+  }
+
+  return res.json({ ok: true });
 });
 
 /**
- * MOCK reset accepting { email, token, newPassword }.
- * Production: verify the signed token from forgotPassword before updating.
+ * Consume a password-reset token: { token, password }.
+ * The stored token is a SHA-256 hash with a 1-hour expiry.
  */
 export const resetPassword = asyncHandler(async (req, res) => {
-  const { email, token, newPassword } = req.body;
-  if (!email || !token || !newPassword) {
-    throw new ApiError(400, 'email, token and newPassword are required');
-  }
-  if (String(newPassword).length < 8) {
-    throw new ApiError(400, 'Password must be at least 8 characters');
-  }
-  const user = await User.findOne({ email });
+  const { token, password } = req.body;
+
+  const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+  const user = await User.findOne({
+    resetPasswordToken: tokenHash,
+    resetPasswordExpires: { $gt: new Date() },
+  });
+
+  if (!user) throw new ApiError(400, 'Invalid or expired reset token');
+
+  user.passwordHash = await bcrypt.hash(password, 12);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  res.json({ ok: true });
+});
+
+/**
+ * Change the authenticated user's password: { currentPassword, newPassword }.
+ * Verifies the current password first (401 when wrong).
+ */
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user.id).select('+passwordHash');
   if (!user) throw new ApiError(404, 'User not found');
+
+  const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!ok) throw new ApiError(401, 'Current password is incorrect');
 
   user.passwordHash = await bcrypt.hash(newPassword, 12);
   await user.save();
-  res.json({ message: 'Password updated (mock flow).' });
+
+  res.json({ ok: true });
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {

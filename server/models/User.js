@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     publicProfile: { type: Boolean, default: true },
     suspended: { type: Boolean, default: false },
+    // Password-reset flow: stores only the SHA-256 hash of the reset token,
+    // never the raw token. select: false keeps both out of query results.
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
     stats: {
       experiences: { type: Number, default: 0 },
       decisionsCompleted: { type: Number, default: 0 },

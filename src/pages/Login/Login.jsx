@@ -6,11 +6,6 @@ import { Icon } from '../../utils/icons.jsx';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import './Login.css';
 
-const DEMO_ACCOUNTS = [
-  { role: 'Contributor', email: 'demo@deadend.app', password: 'demo1234' },
-  { role: 'Admin', email: 'admin@deadend.app', password: 'admin1234' },
-];
-
 export default function Login() {
   useDocumentTitle('Sign in — DEADEND');
   const navigate = useNavigate();
@@ -44,12 +39,6 @@ export default function Login() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const fillDemo = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
-    setError('');
   };
 
   return (
@@ -124,24 +113,6 @@ export default function Login() {
             <Icon name="arrowRight" />
           </button>
         </form>
-
-        <div className="demo-box">
-          <p className="demo-title">Try the demo</p>
-          <div className="demo-buttons">
-            {DEMO_ACCOUNTS.map((account) => (
-              <button
-                key={account.role}
-                type="button"
-                className="demo-btn"
-                onClick={() => fillDemo(account)}
-              >
-                <span className="demo-role">{account.role}</span>
-                <span className="demo-email">{account.email}</span>
-              </button>
-            ))}
-          </div>
-          <p className="demo-hint">Click a card to fill the form, then press Sign in.</p>
-        </div>
 
         <p className="auth-switch">
           New here? <Link to="/register" className="auth-link">Create an account</Link>
