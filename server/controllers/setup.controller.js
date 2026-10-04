@@ -26,12 +26,12 @@ function checkSetupKey(req) {
   return null;
 }
 
-/** POST /api/setup/seed — idempotent demo-data bootstrap. */
+/** POST /api/setup/seed — idempotent demo-data bootstrap. Accepts ?only=categories,users,... to run in chunks. */
 export const seed = asyncHandler(async (req, res) => {
   const denied = checkSetupKey(req);
   if (denied) return res.status(denied.status).json(denied.body);
 
-  const result = await seedDatabase();
+  const result = await seedDatabase({ only: req.query.only || null });
   res.json(result);
 });
 
