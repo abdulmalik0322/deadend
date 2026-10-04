@@ -815,31 +815,31 @@
 
   .steps {
     grid-template-columns: 1fr;
-    gap: 34px;
+    gap: 44px;
   }
 
   .steps::before {
-    top: 8%;
-    bottom: 8%;
-    left: 29px;
-    right: auto;
-    width: 2px;
-    height: auto;
+    display: none;
   }
 
   .step {
-    display: grid;
-    grid-template-columns: 60px 1fr;
-    grid-template-rows: auto auto auto;
-    column-gap: 18px;
-    text-align: left;
-    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 8px;
   }
 
   .step__badge {
-    grid-row: 1 / 4;
-    margin-bottom: 0;
-    box-shadow: none;
+    width: 64px;
+    height: 64px;
+    margin: 0 0 18px;
+    box-shadow: 0 0 0 6px var(--bg);
+    flex-shrink: 0;
+  }
+
+  .step__kicker {
+    margin-bottom: 8px;
   }
 
   .step__kicker {

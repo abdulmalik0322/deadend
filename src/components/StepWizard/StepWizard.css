@@ -6,14 +6,14 @@
   align-items: flex-start;
 }
 
-.step {
+.step-wizard .step {
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.step-inner {
+.step-wizard .step-inner {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -23,16 +23,16 @@
   padding: 4px;
 }
 
-.step--clickable .step-inner {
+.step-wizard .step--clickable .step-inner {
   cursor: pointer;
   transition: background var(--dur) var(--ease);
 }
 
-.step--clickable .step-inner:hover {
+.step-wizard .step--clickable .step-inner:hover {
   background: var(--surface);
 }
 
-.step-dot {
+.step-wizard .step-dot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -47,42 +47,42 @@
   font-weight: 700;
 }
 
-.step--done .step-dot {
+.step-wizard .step--done .step-dot {
   background: var(--accent-soft);
   border-color: var(--accent-border);
   color: var(--accent);
 }
 
-.step--active .step-dot {
+.step-wizard .step--active .step-dot {
   background: var(--accent);
   border-color: var(--accent);
   color: #0a0a0b;
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-.step-text {
+.step-wizard .step-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding-top: 2px;
 }
 
-.step-title {
+.step-wizard .step-title {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-2);
 }
 
-.step--active .step-title {
+.step-wizard .step--active .step-title {
   color: var(--text);
 }
 
-.step-subtitle {
+.step-wizard .step-subtitle {
   font-size: 0.78rem;
   color: var(--muted);
 }
 
-.step-connector {
+.step-wizard .step-connector {
   position: absolute;
   top: 21px;
   left: calc(50% + 24px);
@@ -91,7 +91,7 @@
   background: var(--border);
 }
 
-.step--done .step-connector {
+.step-wizard .step--done .step-connector {
   background: var(--accent-border);
 }
 
@@ -101,13 +101,13 @@
     gap: 0;
   }
 
-  .step {
+  .step-wizard .step {
     flex-direction: row;
     padding-left: 0;
     width: 100%;
   }
 
-  .step-connector {
+  .step-wizard .step-connector {
     top: auto;
     bottom: calc(-100% + 40px);
     left: 20px;
@@ -116,13 +116,13 @@
     height: calc(100% - 40px);
   }
 
-  .step:last-child .step-connector {
+  .step-wizard .step:last-child .step-connector {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .step--active .step-dot {
+  .step-wizard .step--active .step-dot {
     box-shadow: none;
   }
 }
