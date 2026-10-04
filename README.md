@@ -1,188 +1,195 @@
-# DEADEND — Before You Decide, See What Happened.
+# DEADEND — Server
 
-DEADEND is a structured knowledge platform for learning from real human decisions and outcomes.
-Its core idea: **before you make a decision, see what happened to people who made a similar one.**
+Backend API for **DEADEND** ("Before You Decide, See What Happened.") — a structured
+knowledge platform where people share what they tried, what it cost, and what actually
+happened, so others can decide with real before/after evidence.
 
-People share structured experiences (goal, starting situation, timeline, investment, outcome,
-obstacles, lessons). The platform turns those into searchable data, matches similar situations,
-tracks decisions before/after, and produces honest, evidence-backed analysis — never predictions.
+Stack: Node.js (ESM) + Express 4 + Mongoose 8 + JWT + bcryptjs + express-validator +
+helmet + cors + express-rate-limit + morgan + dotenv + slugify.
 
-Live site: **https://abdulmalik0322.github.io/deadend/** (frontend, GitHub Pages)
-
-> **Production.** The frontend talks to a real backend: an Express API deployed as
-> Vercel serverless functions + MongoDB Atlas (see *Production deployment* below).
-> The in-browser mock adapter (fictional sample data in `src/data/seed.js`) is still
-> available for local demos via `VITE_API_MODE=mock`.
-
-## Quick start
-
-**Frontend** (GitHub Pages build):
-
-```bash
-cd ~/workspace/deadend
-npm install
-npm run dev      # http://localhost:5173 (mock data by default)
-```
-
-```bash
-npm run build    # production build -> dist/
-npm run preview  # preview the production build
-```
-
-**Backend** (local):
+## Setup
 
 ```bash
 cd server
-npm install
-cp .env.example .env   # fill in MONGODB_URI (Atlas) and the rest
-npm run dev            # node --watch server.js
-npm test               # 49-step integration + serverless-wrapper suite
+cp .env.example .env        # then edit values
+# npm install               # install dependencies (do this once)
+npm run seed                # seed dev data (demo + admin users, categories, samples)
+npm run dev                 # start with --watch
 ```
 
-## Local demo credentials (mock adapter only)
+`npm start` runs without the watcher (production). Requires MongoDB running locally
+or a `MONGODB_URI` pointing at MongoDB Atlas (see `.env.example`).
 
-These work only with `VITE_API_MODE=mock` (localStorage demo data). Real accounts
-register through the app against the live API.
+## Environment
 
-| Role        | Email              | Password   |
-|-------------|--------------------|------------|
-| Contributor | demo@deadend.app   | demo1234   |
-| Admin       | admin@deadend.app  | admin1234  |
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `5000` | HTTP port |
+| `MONGODB_URI` | `mongodb://localhost:27017/deadend` | MongoDB connection string (Atlas URI in prod) |
+| `JWT_SECRET` | `change-me-in-production` | Secret for signing JWTs — **must** be changed in prod |
+| `JWT_EXPIRES_IN` | `7d` | Token lifetime |
+| `CLIENT_URL` | `http://localhost:5173` | Allowed CORS origin(s), comma-separated |
+| `RATE_LIMIT_WINDOW_MS` | `900000` | Rate-limit window (15 min) |
+| `RATE_LIMIT_MAX` | `100` | Max requests per window per IP (general API) |
 
-Use the Admin account to try the moderation queue, reports, users, and analytics at `/admin`.
+## How the frontend connects
 
-## Project structure
+Set in the frontend `.env`:
 
 ```
-deadend/
-  index.html                 # SEO/OG meta, fonts, SPA fallback for GitHub Pages
-  public/                    # robots.txt, sitemap.xml, 404.html, favicon.svg
-  vite.config.js             # base: '/deadend/' for GitHub Pages project site
-  src/
-    main.jsx                 # entry: router, AuthProvider, ToastProvider, styles
-    App.jsx                  # route table (semantic slugs, e.g. /experiences/freelancing-for-8-months)
-    styles/                  # tokens.css (design tokens), base.css (reset, a11y, motion)
-    data/seed.js             # 10 users, 20 experiences, 10 decisions, 10 categories, comments, ...
-    utils/                   # format.js, similarity.js (relevance scoring), icons.jsx (inline SVG)
-    hooks/                   # useReveal (scroll reveal), useCountUp, useDocumentTitle
-    context/AuthContext.jsx  # auth state: login/register/logout/updateProfile
-    components/              # 26 reusable components (Navbar, Footer, ExperienceCard,
-                             #   DecisionCard, SearchBar, FilterPanel, SimilarityCard,
-                             #   Timeline, StatsCard, Modal, Toast, Skeleton, EmptyState,
-                             #   ErrorState, OutcomeBadge, Pagination, TagList, Avatar,
-                             #   ProgressBar, StepWizard, BeforeAfterCompare, CommentThread,
-                             #   NotificationItem, FolderList, AdminTable, RequireAuth)
-    pages/                   # 27 routed pages (Home, Explore, ExperienceDetail, Share,
-                             #   Decisions, DecisionNew, DecisionDetail, Similar, Analysis,
-                             #   Categories, CategoryDetail, HowItWorks, Profile, Dashboard,
-                             #   Saved, Notifications, Login, Register, ForgotPassword,
-                             #   ResetPassword, About, Contact, Terms, Privacy, Guidelines,
-                             #   Admin, NotFound)
-    services/api/
-      index.js               # THE ONLY import pages/components use: `import { api } from ...`
-      mockAdapter.js         # full demo implementation over seed data (localStorage persistence)
-      restAdapter.js         # same signatures; throws until a REST backend is configured,
-                             #   with the endpoint contract documented per function
-  server/                    # Production Express + Mongoose API (see server/CONTRACT.md)
-  api/index.js               # Vercel serverless entry: wraps the Express app,
-                             #   caches the Mongoose connection across invocations
-  vercel.json                # /api/* -> serverless function (primary production host)
-  render.yaml                # documented fallback host (Render free tier sleeps when idle)
+VITE_API_MODE=rest
+VITE_API_URL=http://localhost:5000
 ```
 
-## API layer
+The frontend calls `VITE_API_URL + /api/...` and sends the JWT as
+`Authorization: Bearer <token>`. When `VITE_API_MODE` is anything else, the
+frontend falls back to its local dataset (`src/data/seed.js`).
 
-Pages and components never touch data directly — they call `api.*` from
-`src/services/api/index.js`, which selects the adapter:
+## Auth scheme
 
-- `VITE_API_MODE=rest` → REST adapter (real backend)
-- `VITE_API_MODE=mock` → mock adapter (localStorage demo data)
-- **`VITE_API_URL` set (MODE unset) → REST adapter** (production default)
+- `POST /api/auth/register` / `POST /api/auth/login` return `{ token, user }`.
+- Every protected route needs `Authorization: Bearer <token>`.
+- Token payload: `{ sub: userId, role }`. `protect` middleware sets `req.user = { id, role }`.
+- Roles: `user` (default), `admin`. Admin routes use `authorize('admin')`.
+- Logout is stateless: the client discards the token (`POST /api/auth/logout` just confirms).
+- Forgot/reset password are **mock** flows for development — wire a real email provider before launch.
 
-Token storage: `localStorage["deadend_token"]`, sent as `Authorization: Bearer <token>`.
+## Endpoints
 
-### Connecting the frontend to the real backend
+Base URL: `http://localhost:5000/api`. Auth column: `–` public, `U` logged-in user, `A` admin.
 
-Local dev:
+### Health / search / users
 
-1. Start the API: `cd server && npm install && cp .env.example .env`
-   (point `MONGODB_URI` at MongoDB Atlas) `&& npm run dev`.
-2. Create `.env` in the project root:
-   ```
-   VITE_API_MODE=rest
-   VITE_API_URL=http://localhost:5000
-   ```
-3. `npm run dev` — the app now talks to Express instead of the mock adapter.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/health` | – | Health check |
+| GET | `/search?q=...` | – | Global search → `{ experiences, categories, tags }` |
+| GET | `/users/me/stats` | U | Current user's dashboard stats |
+| GET | `/users/:username` | – | Public profile (respects `publicProfile`) |
 
-Production (GitHub Pages → Vercel API): set the Pages build env to
-`VITE_API_MODE=rest` and `VITE_API_URL=https://<your-vercel-project>.vercel.app`.
+### Auth
 
-The REST contract (method + path + body + response shape) is law in
-`server/CONTRACT.md` and implemented per-function in
-`src/services/api/restAdapter.js`.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/register` | – | Register (username derived from email) |
+| POST | `/auth/login` | – | Login → `{ token, user }` |
+| GET | `/auth/me` | U | Current user |
+| POST | `/auth/logout` | – | Stateless logout message |
+| POST | `/auth/forgot-password` | – | Mock reset request |
+| POST | `/auth/reset-password` | – | Mock reset (email, token, newPassword) |
+| PATCH | `/auth/profile` | U | Update name, bio, country, publicProfile |
 
-## Production deployment
+### Experiences
 
-**Architecture:** React SPA on GitHub Pages → Express API as Vercel serverless
-functions (`api/index.js` wraps `server/app.js`; Mongoose connection cached on
-`globalThis` across warm invocations) → MongoDB Atlas. Vercel was chosen over
-Render as the primary host because Render's free tier sleeps after ~15 min idle
-(30–60s cold starts); Vercel cold starts are ~200ms with no sleep page.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/experiences` | – | List w/ filters (`category`, `country`, `outcome`, `tags`, `q`), `sort=newest\|oldest\|popular`, pagination |
+| GET | `/experiences/:slug` | – | Detail (visibility rules apply; increments views) |
+| POST | `/experiences` | U | Create → `status: pending`, slug auto-generated |
+| PATCH | `/experiences/:id` | U | Update (owner or admin) |
+| DELETE | `/experiences/:id` | U | Delete + cascade saves/comments (owner or admin) |
+| POST | `/experiences/:id/save` | U | Bookmark (optional `{ folder }`) |
+| DELETE | `/experiences/:id/save` | U | Remove bookmark |
+| POST | `/experiences/:id/report` | U | File a moderation report |
 
-### Deploy the API to Vercel
+### Decisions
 
-1. Push this repo to GitHub; import it in Vercel (framework preset: **Other**).
-2. Set environment variables (see `server/.env.example` for details):
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/decisions` | U | Owner's decisions (`?status=` filter) |
+| POST | `/decisions` | U | Create (auto `decisionId`, e.g. `D-10482`) |
+| GET | `/decisions/:id` | U | Detail (owner or admin) |
+| PATCH | `/decisions/:id` | U | Update |
+| DELETE | `/decisions/:id` | U | Delete (+ its Outcome) |
+| POST | `/decisions/:id/updates` | U | Append dated progress note |
+| POST | `/decisions/:id/milestones` | U | Add milestone |
+| PATCH | `/decisions/:id/milestones/:milestoneId` | U | Toggle done (recomputes progress) |
+| POST | `/decisions/:id/complete` | U | Complete → snapshots before/after `Outcome` |
+| POST | `/decisions/:id/abandon` | U | Mark abandoned |
 
-   | Variable | Notes |
-   |---|---|
-   | `MONGODB_URI` | MongoDB Atlas connection string |
-   | `JWT_SECRET` | long random string (64+ chars) |
-   | `JWT_EXPIRES_IN` | `7d` |
-   | `CLIENT_URL` | `https://abdulmalik0322.github.io` |
-   | `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `SMTP_FROM` | password-reset email; if unset, forgot-password returns 503 `email_not_configured` |
-   | `SETUP_KEY` | bootstrap guard (see below); unset disables `/api/setup/*` (404) |
-   | `NODE_ENV` | `production` |
+### Categories
 
-3. Deploy. `vercel.json` routes `/api/*` to the function (`maxDuration: 10`).
-   The frontend is NOT bundled into Vercel — it stays on GitHub Pages.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/categories` | – | List all |
+| GET | `/categories/:slug` | – | Detail + popular searches + experience count |
+| POST | `/categories` | A | Create (slug derived from name if omitted) |
+| PATCH | `/categories/:slug` | A | Update |
 
-### Bootstrap a fresh database (in order)
+### Comments
 
-1. Register your own account in the live app.
-2. `POST https://<project>.vercel.app/api/setup/promote` with header
-   `x-setup-key: <SETUP_KEY>` and body `{ "email": "<your email>" }` → you are admin.
-   (Optionally run `POST /api/setup/seed` first for demo content — it is idempotent
-   and skips when users already exist. Seeded users get random unguessable passwords
-   and cannot log in.)
-3. Rotate or unset `SETUP_KEY` afterwards to disable the setup routes.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/comments?experienceId=...` | – | Visible comments as a reply tree |
+| POST | `/comments` | U | Create (`experienceId`, `body`); notifies author |
+| POST | `/comments/:id/replies` | U | Reply to a comment |
+| POST | `/comments/:id/like` | U | Toggle like |
+| DELETE | `/comments/:id` | U | Delete (owner or admin) |
+| POST | `/comments/:id/report` | U | Report a comment |
 
-### Fallback: Render
+### Saved & folders
 
-`render.yaml` (repo root) deploys the same code as a classic Node web service
-(`rootDir: server`, `node server.js`). Kept as a documented alternative; note the
-free-tier sleep behavior above.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/saved` | U | Saved list (`?folder=` filter), populated |
+| GET | `/saved/folders` | U | List folders |
+| POST | `/saved/folders` | U | Create folder |
+| PATCH | `/saved/folders/:id` | U | Rename folder |
+| DELETE | `/saved/folders/:id` | U | Delete folder (items become unfiled) |
 
-## Design
+### Notifications & reports
 
-- Near-black dark UI (`#0A0A0B`), charcoal surfaces, 1px subtle borders, 8–14px radii.
-- Inter typeface, strong hierarchy. Amber (`#F59E0B`) accent used sparingly.
-- No gradients-as-decoration, no glassmorphism excess, no emojis (inline SVG icons only).
-- Responsive (320 → 1920px), keyboard-friendly, visible focus states, skeleton loaders,
-  empty/error states everywhere, `prefers-reduced-motion` respected.
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/notifications` | U | List (`?unread=true`), includes unread count |
+| PATCH | `/notifications/:id/read` | U | Mark one read |
+| POST | `/notifications/read-all` | U | Mark all read |
+| POST | `/reports` | U | File a report (`targetType`, `targetId`, `reason`) |
+| GET | `/reports` | A | Triage queue (`?status=`, `?targetType=`) |
+| PATCH | `/reports/:id` | A | Resolve (`resolved`/`dismissed`) |
 
-## Backend (`server/`)
+### AI (stub)
 
-Production Node.js + Express + Mongoose API: JWT (HS256, 7d) + bcrypt-12 auth,
-express-validator on all inputs, helmet, CORS (Bearer headers, no cookies),
-rate limits (global 300/15min, auth 20/15min, AI 30/hour), ownership checks,
-HTML-stripped user text, Mongo indexes (text search on experiences, category,
-country, outcome, userId, createdAt, tags).
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/ai/analyze` | U | `{ input }` → honest dataset-statistics summary (no predictions) |
+| POST | `/ai/structure` | U | `{ text }` → Experience-shaped draft for review |
 
-`server/CONTRACT.md` is the canonical endpoint reference (every route, auth,
-body, response). `npm test` runs the 49-step integration + serverless-wrapper
-suite against an in-memory MongoDB — all green. Similarity scoring in
-`server/services/similarity.service.js` uses the documented weights
-(goal 30 / experience 20 / country 15 / budget 15 / time 10 / skills 10) and is
-labeled a "platform-generated relevance score"; `server/services/ai.service.js`
-computes real dataset stats and never invents figures.
+See `services/ai.service.js` for where a real LLM plugs in and the guardrails
+(never predict, always label AI output, never invent statistics).
+
+### Admin
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/admin/overview` | A | Platform counts |
+| GET | `/admin/queue` | A | Pending experiences (oldest first) |
+| PATCH | `/admin/experiences/:id/approve` | A | Approve + notify author |
+| PATCH | `/admin/experiences/:id/reject` | A | Reject (requires `rejectionNote`) + notify |
+| GET | `/admin/users` | A | User list (`?suspended=true`) |
+| PATCH | `/admin/users/:id/suspend` | A | Suspend/unsuspend (`{ suspended }`) |
+| GET | `/admin/analytics` | A | Event counts by type/day, last 30 days |
+
+## Pagination & errors
+
+- List endpoints accept `?page=` / `?limit=` (max 100) and return
+  `{ page, limit, total, pages, items }` (notifications add `unread`).
+- Errors are JSON: `{ error, details? }`. Validation failures → `422`,
+  bad ids → `400`, duplicates → `409`, auth → `401`, forbidden → `403`.
+
+## Rate limits
+
+- General API: 100 req / 15 min per IP (env-tunable).
+- Auth endpoints: 20 req / 15 min per IP.
+- AI endpoints: 30 req / hour per IP.
+
+## Security notes
+
+- `helmet` headers, CORS restricted to `CLIENT_URL`, JSON body limit 1 MB.
+- Passwords hashed with bcrypt (cost 12); `passwordHash` is `select: false`.
+- JWTs are short-lived bearer tokens — store them securely on the client.
+- `suspended` users cannot log in; private experiences/profiles are never
+  exposed publicly; admin-only routes are role-gated.
+- Change `JWT_SECRET`, use an Atlas URI with a strong password, set
+  `NODE_ENV=production`, and replace the mock password-reset flow before launch.
+- No secrets are committed: `.env` is gitignored (see `.env.example`).
