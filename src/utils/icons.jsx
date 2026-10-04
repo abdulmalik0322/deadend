@@ -33,6 +33,25 @@ const PATHS = {
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,
   bookmark: <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />,
+  book: (
+    <>
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    </>
+  ),
+  cpu: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <rect x="9" y="9" width="6" height="6" />
+      <path d="M15 2v2" />
+      <path d="M15 20v2" />
+      <path d="M2 15h2" />
+      <path d="M2 9h2" />
+      <path d="M20 15h2" />
+      <path d="M20 9h2" />
+      <path d="M9 2v2" />
+      <path d="M9 20v2" />
+    </>
+  ),
   share: (
     <>
       <circle cx="18" cy="5" r="3" />
@@ -283,7 +302,7 @@ export function Icon({ name, size = 18, className, ...rest }) {
       aria-hidden="true"
       {...rest}
     >
-      {PATHS[name] || null}
+      {PATHS[name] || PATHS.folder}
     </svg>
   );
 }

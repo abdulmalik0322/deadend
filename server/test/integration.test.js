@@ -78,10 +78,15 @@ await step('register admin + promote via setup (201/200)', async () => {
   adminToken = relogin.body.token;
 });
 
-await step('setup seed is idempotent (skipped, users exist)', async () => {
+await step('setup seed is idempotent (re-run inserts nothing)', async () => {
+  const first = await request(app).post('/api/setup/seed').set(SETUP_HEADERS);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.ok, true);
   const res = await request(app).post('/api/setup/seed').set(SETUP_HEADERS);
   assert.equal(res.status, 200);
-  assert.equal(res.body.skipped, true);
+  assert.equal(res.body.ok, true);
+  const counts = Object.values(res.body.seeded || {});
+  assert.ok(counts.length > 0 && counts.every((n) => n === 0), JSON.stringify(res.body));
 });
 
 await step('setup with wrong key (403)', async () => {

@@ -67,9 +67,6 @@ export default function ForgotPassword() {
               </button>
             </form>
 
-            <div className="demo-note">
-              Demo mode: no real email is sent. In production, the reset link arrives within a few minutes.
-            </div>
           </>
         ) : (
           <div className="auth-success">
@@ -81,9 +78,6 @@ export default function ForgotPassword() {
               If an account exists for <strong>{email}</strong>, a password reset link is on its way.
               The link expires after 60 minutes.
             </p>
-            <div className="demo-note">
-              Demo mode: no real email is sent. To continue exploring, head back to sign in.
-            </div>
             <Link to="/login" className="auth-link">Back to sign in</Link>
           </div>
         )}

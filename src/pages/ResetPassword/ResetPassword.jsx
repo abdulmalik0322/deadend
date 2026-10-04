@@ -36,7 +36,7 @@ export default function ResetPassword() {
     setError('');
     setSubmitting(true);
     try {
-      // Mock: any token is accepted in demo mode.
+      // The backend validates the reset token (SHA-256 hash, 1-hour expiry).
       await api.resetPassword(token, password);
       setDone(true);
       toast.success('Password updated.');
@@ -96,10 +96,6 @@ export default function ResetPassword() {
                 <Icon name="arrowRight" />
               </button>
             </form>
-
-            <div className="demo-note">
-              Demo mode: any reset link token is accepted. In production, expired or used links are rejected.
-            </div>
           </>
         ) : (
           <div className="auth-success">

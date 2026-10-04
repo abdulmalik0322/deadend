@@ -27,14 +27,24 @@ const app = express();
 
 // Security + parsing
 app.use(helmet());
-// CORS: explicit allowlist from CLIENT_URL; when unset, reflect the request
+// CORS: explicit allowlist from CLIENT_URL; entries may include a subpath
+// (e.g. https://example.com/deadend) — only the origin is compared, since
+// browsers send `Origin` without a path. When unset, reflect the request
 // origin in non-production only (deny in production). Credentials are
 // disabled — auth uses Bearer tokens, never cookies.
+const corsAllowlist = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((s) => {
+      const t = s.trim();
+      try {
+        return new URL(t).origin;
+      } catch {
+        return t;
+      }
+    })
+  : process.env.NODE_ENV !== 'production';
 app.use(
   cors({
-    origin: process.env.CLIENT_URL
-      ? process.env.CLIENT_URL.split(',').map((s) => s.trim())
-      : process.env.NODE_ENV !== 'production',
+    origin: corsAllowlist,
     credentials: false,
   })
 );
