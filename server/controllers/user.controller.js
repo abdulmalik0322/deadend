@@ -22,6 +22,7 @@ export const getPublicProfile = asyncHandler(async (req, res) => {
     username: user.username,
     bio: user.bio,
     country: user.country,
+    publicProfile: user.publicProfile,
     stats: user.stats,
     createdAt: user.createdAt,
   });

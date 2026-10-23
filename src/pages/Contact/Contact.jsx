@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../../services/api/index.js';
 import { useToast } from '../../components/Toast/Toast.jsx';
 import { Icon } from '../../utils/icons.jsx';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
@@ -20,18 +21,23 @@ export default function Contact() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
-    // Mock send: no real email leaves the browser.
-    setTimeout(() => {
-      setSending(false);
+    try {
+      // Real delivery: the backend persists the message (MongoDB) so it is
+      // never silently dropped. In mock/demo mode it is stored locally.
+      await api.sendContactMessage({ name, email, topic, message });
       setName('');
       setEmail('');
       setTopic(TOPICS[0]);
       setMessage('');
       toast.success('Message received. We reply within 2 business days.');
-    }, 600);
+    } catch (err) {
+      toast.error(err?.message || 'Could not send your message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

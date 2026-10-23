@@ -26,9 +26,10 @@ export default function Profile() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [stories, setStories] = useState([]);
   const [storiesTotal, setStoriesTotal] = useState(0);
-  const [authorInfo, setAuthorInfo] = useState(null);
+  const [profileData, setProfileData] = useState(null);
   const [tab, setTab] = useState('stories');
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -42,19 +43,30 @@ export default function Profile() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setIsPrivate(false);
     try {
-      const res = await api.listExperiences({
-        filters: { authorUsername: username },
-        sort: 'recent',
-        page: 1,
-        perPage: 12,
-      });
+      // Profile data and the author's stories are loaded as two separate
+      // calls: the backend filters stories by author username, and the
+      // profile endpoint enforces the private-profile visibility rule.
+      const [profile, res] = await Promise.all([
+        api.getPublicProfile(username),
+        api.listExperiences({
+          filters: { authorUsername: username },
+          sort: 'recent',
+          page: 1,
+          perPage: 12,
+        }),
+      ]);
       const items = Array.isArray(res) ? res : res?.items ?? res?.experiences ?? [];
+      setProfileData(profile);
       setStories(items);
       setStoriesTotal(Array.isArray(res) ? items.length : res?.total ?? items.length);
-      setAuthorInfo(items[0]?.author ?? null);
     } catch (err) {
-      setError(err?.message || 'Could not load this profile.');
+      if (err?.code === 'PRIVATE_PROFILE') {
+        setIsPrivate(true);
+      } else {
+        setError(err?.message || 'Could not load this profile.');
+      }
     } finally {
       setLoading(false);
     }
@@ -64,7 +76,9 @@ export default function Profile() {
     load();
   }, [load]);
 
-  // Build the visible profile from the richest available source.
+  // Build the visible profile from the dedicated profile endpoint.
+  // Stories are loaded separately so a profile can never show another
+  // person's stories (the backend filters by author username).
   const profile = isOwner
     ? {
         name: viewer?.name || username,
@@ -76,16 +90,14 @@ export default function Profile() {
         stats: viewer?.stats,
       }
     : {
-        name: authorInfo?.name || username,
+        name: profileData?.name || username,
         username,
-        bio: authorInfo?.bio || '',
-        country: authorInfo?.country || '',
-        publicProfile: authorInfo?.publicProfile,
-        joinedAt: authorInfo?.createdAt || authorInfo?.joinedAt,
-        stats: authorInfo?.stats,
+        bio: profileData?.bio || '',
+        country: profileData?.country || '',
+        publicProfile: profileData?.publicProfile,
+        joinedAt: profileData?.createdAt || profileData?.joinedAt,
+        stats: profileData?.stats,
       };
-
-  const isPrivate = !isOwner && profile.publicProfile === false;
 
   const openEdit = () => {
     setEditForm({

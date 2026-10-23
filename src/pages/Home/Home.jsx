@@ -127,7 +127,7 @@ const FEATURES = [
   { icon: 'target', title: 'Decision Tracking', text: 'Log the decision you are weighing and keep a record of what you choose.' },
   { icon: 'chart', title: 'Outcome Tracking', text: 'Record what happened after you decided and build your own track record.' },
   { icon: 'eye', title: 'Before vs After', text: 'See the starting point and the result side by side — no highlight reels.' },
-  { icon: 'sparkles', title: 'AI Analysis', text: 'Patterns across submitted experiences, summarized responsibly and transparently.' },
+  { icon: 'sparkles', title: 'Pattern Analysis', text: 'Data-based patterns across submitted experiences, summarized transparently — no black-box AI.' },
   { icon: 'search', title: 'Smart Search', text: 'Search by goal, obstacle, budget, or situation — not just keywords.' },
   { icon: 'lock', title: 'Private Decisions', text: 'Your decisions stay private unless you choose to share them.' },
 ];
@@ -322,7 +322,7 @@ export default function Home() {
               </div>
               <span className="decision-mock__status">Decided</span>
             </div>
-            <p className="decision-mock__conf">Confidence: high — based on 14 similar experiences</p>
+            <p className="decision-mock__conf">14 similar experiences found — compare their outcomes, costs, and lessons. Past experiences are evidence to consider, not predictions.</p>
             <ol className="mini-timeline">
               <li><span className="mini-timeline__dot" /> Researched the path</li>
               <li><span className="mini-timeline__dot" /> Compared 14 similar experiences</li>
@@ -402,10 +402,10 @@ export default function Home() {
         </div>
       </RevealSection>
 
-      {/* (9) AI ANALYSIS PREVIEW */}
+      {/* (9) PATTERN ANALYSIS PREVIEW */}
       <RevealSection>
         <SectionHead
-          eyebrow="AI ANALYSIS"
+          eyebrow="PATTERN ANALYSIS"
           title={patterns ? `Patterns in ${patterns.total} documented experiences` : 'Patterns in documented experiences'}
           sub="Summaries generated from submitted experiences — transparent about what they are and what they are not."
         />
@@ -425,7 +425,7 @@ export default function Home() {
         </div>
         <div className="center">
           <Link className="btn btn-ghost" to="/analysis">
-            Explore AI analysis <Icon name="arrowRight" size={14} />
+            Explore pattern analysis <Icon name="arrowRight" size={14} />
           </Link>
         </div>
       </RevealSection>

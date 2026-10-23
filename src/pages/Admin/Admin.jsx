@@ -973,7 +973,7 @@ export default function Admin() {
       <Modal open={!!aiEdit} onClose={() => setAiEdit(null)} title="Edit structured metadata">
         <div className="modal-body">
           <p className="modal-note">
-            Adjust the AI-generated summary and tags for <strong>{aiEdit?.title || 'this experience'}</strong>.
+            Adjust the auto-generated summary and tags for <strong>{aiEdit?.title || 'this experience'}</strong>.
             The original submission is never altered.
           </p>
           <label className="field">

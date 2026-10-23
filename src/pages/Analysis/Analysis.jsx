@@ -342,7 +342,7 @@ export default function Analysis() {
               <EmptyState
                 icon="chart"
                 title="No report yet"
-                body="Fill in the decision above and generate a report. It combines dataset statistics with an AI-written summary — informational only, never a prediction."
+                body="Fill in the decision above and generate a report. It combines dataset statistics with an auto-generated summary (rule-based, no AI model) — informational only, never a prediction."
               />
             )}
 
@@ -412,7 +412,7 @@ export default function Analysis() {
                 </section>
 
                 <section className="report-section card">
-                  <h3 className="section-label"><Icon name="sparkles" /> AI-generated summary</h3>
+                  <h3 className="section-label"><Icon name="sparkles" /> Generated summary</h3>
                   <p className="ai-summary">{report.summary}</p>
 
                   {report.questions?.length > 0 && (
@@ -470,7 +470,7 @@ export default function Analysis() {
                 <textarea
                   id="story-raw"
                   className="textarea"
-                  placeholder="Write it however it comes to mind — what you wanted, where you started, what you tried, what happened. The AI will structure it into a clean draft you can review."
+                  placeholder="Write it however it comes to mind — what you wanted, where you started, what you tried, what happened. Automated structuring will organize it into a clean draft you can review."
                   value={rawStory}
                   onChange={(e) => setRawStory(e.target.value)}
                   rows={8}
@@ -505,7 +505,7 @@ export default function Analysis() {
               <EmptyState
                 icon="doc"
                 title="No draft yet"
-                body="Paste your story above and the AI will organize it into goal, starting point, actions, outcome, obstacles and lessons — ready for you to review and edit."
+                body="Paste your story above and the tool will organize it into goal, starting point, actions, outcome, obstacles and lessons — ready for you to review and edit."
               />
             )}
 
@@ -513,7 +513,7 @@ export default function Analysis() {
               <section className="card draft-card" aria-label="Structured draft preview">
                 <div className="draft-badge">
                   <Icon name="sparkles" />
-                  <span>AI-generated draft — review before publishing</span>
+                  <span>Auto-generated draft — review before publishing</span>
                 </div>
 
                 <div className="draft-grid">

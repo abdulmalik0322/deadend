@@ -94,6 +94,7 @@ async function request(path, { method = 'GET', body, auth = false, query } = {})
     const err = new ApiError(message, { status: res.status });
     if (res.status === 401) err.code = 'INVALID_CREDENTIALS';
     if (res.status === 403 && /suspend/i.test(message)) err.code = 'SUSPENDED';
+    if (res.status === 403 && /private/i.test(message)) err.code = 'PRIVATE_PROFILE';
     if (res.status === 409 && /email/i.test(message)) err.code = 'EMAIL_TAKEN';
     if (res.status === 404) err.code = 'NOT_FOUND';
     throw err;
@@ -140,6 +141,7 @@ export async function listExperiences({ filters = {}, sort = 'relevant', page = 
   const tags = toCsv(filters.tags);
   if (tags) q.tags = tags;
   if (filters.q) q.q = filters.q;
+  if (!isNoFilter(filters.authorUsername)) q.author = filters.authorUsername;
 
   const data = await get('/api/experiences', { query: q, auth: true });
   return {
@@ -422,6 +424,17 @@ export async function updateProfile(data) {
   return put('/api/auth/profile', data, { auth: true });
 }
 
+// GET /api/users/:username -> public profile (auth optional: owner/admin see private)
+export async function getPublicProfile(username) {
+  return get(`/api/users/${encodeURIComponent(username)}`, { auth: true });
+}
+
+// POST /api/contact -> {ok:true}
+export async function sendContactMessage({ name, email, topic, message }) {
+  await post('/api/contact', { name, email, topic, message });
+  return { ok: true };
+}
+
 // PUT /api/auth/password {currentPassword, newPassword} -> {ok:true}
 export async function changePassword(currentPassword, newPassword) {
   await put('/api/auth/password', { currentPassword, newPassword }, { auth: true });
@@ -640,6 +653,8 @@ const restAdapter = {
   logout,
   me,
   updateProfile,
+  getPublicProfile,
+  sendContactMessage,
   changePassword,
   forgotPassword,
   resetPassword,

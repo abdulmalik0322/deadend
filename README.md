@@ -139,7 +139,8 @@ Render as the primary host because Render's free tier sleeps after ~15 min idle
    | `MONGODB_URI` | MongoDB Atlas connection string |
    | `JWT_SECRET` | long random string (64+ chars) |
    | `JWT_EXPIRES_IN` | `7d` |
-   | `CLIENT_URL` | `https://abdulmalik0322.github.io` |
+   | `CLIENT_URL` | `https://abdulmalik0322.github.io` (CORS origin — no path) |
+   | `FRONTEND_URL` | `https://abdulmalik0322.github.io/deadend` (full app base path — used for password-reset links) |
    | `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `SMTP_FROM` | password-reset email; if unset, forgot-password returns 503 `email_not_configured` |
    | `SETUP_KEY` | bootstrap guard (see below); unset disables `/api/setup/*` (404) |
    | `NODE_ENV` | `production` |

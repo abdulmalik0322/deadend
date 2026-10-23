@@ -1316,6 +1316,63 @@ export async function updateProfile(data) {
   return publicUser(sessionUser(next));
 }
 
+/**
+ * Public profile of a user by username.
+ * Private profiles are visible only to the owner or an admin.
+ */
+export async function getPublicProfile(username) {
+  await latency();
+  const store = loadStore();
+  const viewer = sessionUser(store);
+  const want = normText(username);
+  const user = allUsers(store).find((u) => normText(u.username) === want);
+  if (!user) {
+    const err = new Error('User not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  const isOwner = viewer && viewer.id === user.id;
+  const isAdmin = viewer?.role === 'admin';
+  if (user.publicProfile === false && !isOwner && !isAdmin) {
+    const err = new Error('This profile is private');
+    err.code = 'PRIVATE_PROFILE';
+    throw err;
+  }
+  const { password, ...rest } = user;
+  return {
+    name: rest.name,
+    username: rest.username,
+    bio: rest.bio || '',
+    country: rest.country || '',
+    publicProfile: rest.publicProfile !== false,
+    createdAt: rest.createdAt,
+    stats: rest.stats,
+  };
+}
+
+/**
+ * Contact form submission (mock mode): stored locally so the demo flow
+ * mirrors the real API's { ok: true } contract.
+ */
+export async function sendContactMessage({ name, email, topic, message }) {
+  await latency();
+  const store = loadStore();
+  const items = store.contactMessages || [];
+  items.push({
+    id: `contact_${Date.now()}`,
+    name: String(name || '').slice(0, 120),
+    email: String(email || '').toLowerCase(),
+    topic,
+    message: String(message || '').slice(0, 5000),
+    status: 'new',
+    createdAt: new Date().toISOString(),
+  });
+  updateStore((s) => {
+    s.contactMessages = items;
+  });
+  return { ok: true };
+}
+
 export async function forgotPassword(email) {
   await latency();
   void email;
@@ -1680,6 +1737,8 @@ const mockAdapter = {
   logout,
   me,
   updateProfile,
+  getPublicProfile,
+  sendContactMessage,
   forgotPassword,
   resetPassword,
   listNotifications,

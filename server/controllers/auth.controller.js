@@ -104,8 +104,13 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    const clientUrl = (process.env.CLIENT_URL || '').split(',')[0].trim();
-    const resetUrl = `${clientUrl}/reset-password?token=${token}`;
+    // FRONTEND_URL includes the app base path (e.g. https://host/deadend),
+    // while CLIENT_URL is the plain origin used for CORS. Prefer FRONTEND_URL.
+    const baseUrl = (process.env.FRONTEND_URL || process.env.CLIENT_URL || '')
+      .split(',')[0]
+      .trim()
+      .replace(/\/+$/, '');
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     try {
       await sendPasswordResetEmail(user.email, resetUrl);

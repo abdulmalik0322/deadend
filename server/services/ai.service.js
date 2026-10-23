@@ -37,21 +37,31 @@ const OUTCOME_LABELS = {
 const RELEVANT_LIMIT = 12;
 const RELATED_LIMIT = 5;
 
-/** Count non-empty strings case-insensitively, keep first-seen casing. */
-function countTexts(values) {
+const topN = (entries, n) => entries.slice(0, n).map(({ text, count }) => ({ text, count }));
+
+/**
+ * Count how many DOCUMENTS mention each text value.
+ * Each document contributes at most 1 per distinct value (case-insensitive),
+ * so repeated copies of the same obstacle inside one story are not
+ * double-counted. The reported count therefore equals "of N experiences".
+ */
+function countTextsPerDocument(docs, pick) {
   const counts = new Map();
-  for (const raw of values) {
-    const text = String(raw || '').trim();
-    if (!text) continue;
-    const key = text.toLowerCase();
-    const entry = counts.get(key);
-    if (entry) entry.count += 1;
-    else counts.set(key, { text, count: 1 });
+  for (const doc of docs) {
+    const seen = new Set();
+    for (const raw of pick(doc) || []) {
+      const text = String(raw || '').trim();
+      if (!text) continue;
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const entry = counts.get(key);
+      if (entry) entry.count += 1;
+      else counts.set(key, { text, count: 1 });
+    }
   }
   return [...counts.values()].sort((a, b) => b.count - a.count || a.text.localeCompare(b.text));
 }
-
-const topN = (entries, n) => entries.slice(0, n).map(({ text, count }) => ({ text, count }));
 
 /**
  * Summarize what the dataset says about situations like the user's.
@@ -81,11 +91,11 @@ export async function analyzeDecision(input = {}) {
   }
 
   const topObstacles = topN(
-    countTexts(top.flatMap((d) => d.obstacles || [])),
+    countTextsPerDocument(top, (d) => d.obstacles),
     5
   );
   const topWhatWorked = topN(
-    countTexts(top.flatMap((d) => d.whatWorked || [])),
+    countTextsPerDocument(top, (d) => d.whatWorked),
     5
   );
 

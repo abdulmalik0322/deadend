@@ -235,6 +235,7 @@ export const listExperiences = asyncHandler(async (req, res) => {
     q,
     sort = 'relevant',
     status,
+    author,
   } = req.query;
 
   const viewer = req.user || null;
@@ -252,6 +253,16 @@ export const listExperiences = asyncHandler(async (req, res) => {
     };
   } else {
     mongoFilter = { status: 'approved', privacy: { $ne: 'private' } };
+  }
+
+  // author: username → author's experiences only (used by profile pages).
+  // Unknown username → empty result. Visibility rules above still apply.
+  if (author) {
+    const authorUser = await User.findOne({ username: normText(author) }).select('_id');
+    if (!authorUser) {
+      return res.json({ items: [], total: 0, page, pages: 0, limit });
+    }
+    mongoFilter.author = authorUser._id;
   }
 
   // category: slug → Category _id; unknown slug → empty result
